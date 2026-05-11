@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Isaac / simulation caches
+.cache/
+*.log
+*.tmp
+*.bak
+
+# RL logs and checkpoints
+logs/rsl_rl/
+logs/**/events.out.tfevents.*
+logs/**/*.pt
+logs/**/*.pth
+logs/**/*.onnx
+
+# Large exported archives
+*.tar.gz
+*.zip
+
+# VSCode server / local editor
+.vscode-server/
+.vscode/
