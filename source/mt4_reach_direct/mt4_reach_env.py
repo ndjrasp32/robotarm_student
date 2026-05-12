@@ -59,9 +59,9 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
             pos=(0.0, 0.0, 0.0),
             joint_pos={
                 "base_yaw": 0.0,
-                "shoulder": 1.38,
-                "elbow": -1.18,
-                "wrist_pitch": 1.10,
+                "shoulder": 1.44,
+                "elbow": -1.19,
+                "wrist_pitch": 1.19,
             },
         ),
         actuators={
@@ -147,7 +147,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.joint_lower = torch.tensor([-1.57, 0.05, -1.20, -1.20], device=self.device)
         self.joint_upper = torch.tensor([1.57, 1.45, 1.40, 1.20], device=self.device)
 
-        self.home_joint_pos = torch.tensor([0.0, 1.38, -1.18, 1.10], device=self.device)
+        self.home_joint_pos = torch.tensor([0.0, 1.44, -1.19, 1.19], device=self.device)
 
         self.actions = torch.zeros((self.num_envs, 4), device=self.device)
         self.joint_targets = self.home_joint_pos.repeat(self.num_envs, 1)
