@@ -108,6 +108,10 @@ def checkpoint_summary(run_dir, ea, tags):
     mean_dist_tag = find_tag(tags, ["mt4/mean_distance", "mean_distance"])
     insertion_lateral_tag = find_tag(tags, ["mt4/mean_insertion_lateral_error", "mean_insertion_lateral_error"])
     alignment_tag = find_tag(tags, ["mt4/mean_alignment", "mean_alignment", "alignment"])
+    pregrasp_alignment_tag = find_tag(tags, ["mt4/mean_pregrasp_alignment", "mean_pregrasp_alignment"])
+    insertion_alignment_tag = find_tag(tags, ["mt4/mean_insertion_alignment", "mean_insertion_alignment"])
+    target_contact_tag = find_tag(tags, ["mt4/mean_target_contact_penalty", "mean_target_contact_penalty"])
+    insertion_progress_tag = find_tag(tags, ["mt4/mean_insertion_progress", "mean_insertion_progress"])
     min_dist_tag = find_tag(tags, ["mt4/min_distance", "min_distance"])
     reward_tag = find_tag(tags, ["Train/mean_reward", "mean_reward", "reward"])
 
@@ -119,6 +123,10 @@ def checkpoint_summary(run_dir, ea, tags):
     print(" mean_dist        =", mean_dist_tag)
     print(" lateral_error    =", insertion_lateral_tag)
     print(" alignment        =", alignment_tag)
+    print(" pregrasp_align   =", pregrasp_alignment_tag)
+    print(" insertion_align  =", insertion_alignment_tag)
+    print(" contact_penalty  =", target_contact_tag)
+    print(" insertion_prog   =", insertion_progress_tag)
     print(" min_dist         =", min_dist_tag)
     print(" reward           =", reward_tag)
 
@@ -129,12 +137,16 @@ def checkpoint_summary(run_dir, ea, tags):
     mdx, mdy = get_series(ea, mean_dist_tag)
     ilx, ily = get_series(ea, insertion_lateral_tag)
     ax, ay = get_series(ea, alignment_tag)
+    pax, pay = get_series(ea, pregrasp_alignment_tag)
+    iax, iay = get_series(ea, insertion_alignment_tag)
+    tcx, tcy = get_series(ea, target_contact_tag)
+    ipx, ipy = get_series(ea, insertion_progress_tag)
     mindx, mindy = get_series(ea, min_dist_tag)
     rx, ry = get_series(ea, reward_tag)
 
     # 자동 추정: scalar step이 iteration 번호인지 total step인지 판단
     max_ckpt_iter = max(parse_ckpt_iter(p) or 0 for p in ckpts)
-    scalar_steps = sx + psx + pdx + tdx + mdx + ilx + ax + mindx + rx
+    scalar_steps = sx + psx + pdx + tdx + mdx + ilx + ax + pax + iax + tcx + ipx + mindx + rx
     max_scalar_step = max(scalar_steps) if scalar_steps else 0
 
     if max_scalar_step > max(1000, max_ckpt_iter * 10):
@@ -166,6 +178,10 @@ def checkpoint_summary(run_dir, ea, tags):
         ms, mv = nearest_value(mdx, mdy, target_step)
         ils, ilv = nearest_value(ilx, ily, target_step)
         als, alv = nearest_value(ax, ay, target_step)
+        pas, pav = nearest_value(pax, pay, target_step)
+        ias, iav = nearest_value(iax, iay, target_step)
+        tcs, tcv = nearest_value(tcx, tcy, target_step)
+        ips, ipv = nearest_value(ipx, ipy, target_step)
         mins, minv = nearest_value(mindx, mindy, target_step)
         rs, rv = nearest_value(rx, ry, target_step)
 
@@ -181,6 +197,10 @@ def checkpoint_summary(run_dir, ea, tags):
             "mean_distance": mv,
             "mean_insertion_lateral_error": ilv,
             "mean_alignment": alv,
+            "mean_pregrasp_alignment": pav,
+            "mean_insertion_alignment": iav,
+            "mean_target_contact_penalty": tcv,
+            "mean_insertion_progress": ipv,
             "min_distance": minv,
             "mean_reward": rv,
             "path": str(ckpt),
@@ -188,7 +208,7 @@ def checkpoint_summary(run_dir, ea, tags):
 
     csv_path = OUT_DIR / "mt4_checkpoint_summary.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -247,6 +267,8 @@ def main():
     plot_group(ea, tags, "alignment", ["alignment"])
     plot_group(ea, tags, "touch_error", ["touch_error", "touch_target"])
     plot_group(ea, tags, "insertion_lateral_error", ["insertion_lateral_error"])
+    plot_group(ea, tags, "stage", ["stage2", "stage3", "insertion_progress", "pregrasp_success"])
+    plot_group(ea, tags, "safety", ["object_overlap", "target_contact", "body_target_clearance"])
     plot_group(ea, tags, "episode_length", ["episode_length", "length"])
 
     checkpoint_summary(run_dir, ea, tags)

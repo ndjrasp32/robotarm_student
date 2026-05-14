@@ -80,3 +80,65 @@ Notes:
   - `mt4/mean_touch_target_distance`
   - `mt4/mean_insertion_lateral_error`
 - Relaxed the final success thresholds slightly so early experiments can show measurable improvement while still penalizing overlap with the target marker.
+
+## 2026-05-14 base-to-blue gripper direction fix
+
+- The first 45-degree pregrasp training run showed that the arm reduced distance, but learned a negative alignment direction.
+- Changed the alignment target from the blue-to-red insertion vector to the robot-base-to-blue waypoint direction.
+- This means the visible gripper should first point from the robot body toward the blue pregrasp sphere, instead of rotating to the opposite side.
+- Added a small always-on alignment reward and wrong-way penalty so the policy receives direction feedback before it is already close to the blue sphere.
+- Relaxed early educational thresholds slightly:
+  - `success_radius`: `0.040 -> 0.045`
+  - `pregrasp_success_radius`: `0.050 -> 0.075`
+
+## 2026-05-14 staged pregrasp, alignment, and insertion reward
+
+- Reframed the reach task as a three-stage classroom problem:
+  - stage 1: move the visible gripper tip to the blue pregrasp marker
+  - stage 2: once near blue, align with the blue-to-red 45-degree insertion direction
+  - stage 3: move along that insertion line toward the red target surface without penetrating the red target
+- Split direction metrics:
+  - `pregrasp_alignment`: robot-base-to-blue direction for the initial approach
+  - `insertion_alignment`: blue-to-red direction for the final object approach
+  - `alignment`: active alignment, using pregrasp direction before stage 1 and insertion direction after stage 1
+- Increased stage 1 distance/touch reward so the policy should prioritize reaching the blue marker before trying to solve final insertion.
+- Added target-contact safety shaping:
+  - gripper-tip overlap with the red sphere is penalized
+  - robot link centers too close to the red sphere are penalized as a distance-based collision approximation
+  - combined metric is logged as `mt4/mean_target_contact_penalty`
+- Added small joint-velocity and time penalties to discourage slow dithering and overly aggressive motion.
+- Added stage-specific logs for graph analysis:
+  - `mt4/stage2_alignment_ready_rate`
+  - `mt4/stage3_insertion_ready_rate`
+  - `mt4/mean_pregrasp_alignment`
+  - `mt4/mean_insertion_alignment`
+  - `mt4/mean_body_target_clearance_error`
+  - `mt4/mean_target_contact_penalty`
+  - `mt4/mean_insertion_progress`
+- Added `notes/mt4_reach_stage_reward_plan.md` so the reasoning can be shared with students.
+
+## 2026-05-14 shortened gripper mount geometry
+
+- Visual inspection showed that the gripper width was acceptable, but the straight mount section before the split fingers was too long.
+- Shortened the simplified `gripper_link` geometry so the wrist-to-tip length is less likely to block pregrasp approach:
+  - `mount_arm` total length: about `0.110 m -> 0.060 m`
+  - `tool_mount` moved closer to the wrist
+  - finger rails shortened while keeping the same left/right spacing
+  - visual fingertip/bridge position moved from about `0.248 m` to `0.166 m`
+- Updated the reward/marker fingertip offset:
+  - `gripper_tip_offset_b`: `(0.242, 0.0, 0.0) -> (0.166, 0.0, 0.0)`
+- Regenerated `assets/usd/mt4_simplified_v3.usd` from the v3 gripper-axis script.
+- This change invalidates old reach checkpoints as a fair baseline, because the end-effector geometry and measured fingertip location changed.
+
+## 2026-05-14 alignment-first staged reward
+
+- A short 16-env visual run with the shortened gripper showed:
+  - pregrasp distance improved substantially
+  - occasional `pregrasp_success_rate` appeared
+  - `mean_insertion_alignment` stayed negative, so the policy could reach toward blue while still pointing the gripper opposite the desired red-object insertion direction
+- Reordered the reward curriculum:
+  - old order: reach blue -> align for insertion -> enter red target approach path
+  - new order: align for insertion -> reach blue while keeping that direction -> enter red target approach path
+- Changed active `mt4/mean_alignment` to track `insertion_alignment` directly.
+- `mt4/stage2_alignment_ready_rate` now means the policy has found the insertion direction, even before it reaches the blue pregrasp marker.
+- Pregrasp reward is now gated by insertion alignment, so the arm should avoid learning a folded or reversed pose that can touch blue but cannot continue into the red target.

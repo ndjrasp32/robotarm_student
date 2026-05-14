@@ -27,6 +27,10 @@ FIELDS = [
     "mean_pregrasp_distance",
     "mean_distance",
     "mean_alignment",
+    "mean_pregrasp_alignment",
+    "mean_insertion_alignment",
+    "mean_target_contact_penalty",
+    "mean_insertion_progress",
     "min_distance",
     "mean_reward",
     "checkpoint_path",
@@ -95,7 +99,7 @@ def ensure_log_header() -> None:
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not LOG_PATH.exists() or LOG_PATH.stat().st_size == 0:
         with LOG_PATH.open("w", encoding="utf-8", newline="") as f:
-            csv.DictWriter(f, fieldnames=FIELDS).writeheader()
+            csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n").writeheader()
         return
 
     with LOG_PATH.open("r", encoding="utf-8", newline="") as f:
@@ -106,7 +110,7 @@ def ensure_log_header() -> None:
         return
 
     with LOG_PATH.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDS)
+        writer = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in FIELDS})
@@ -133,6 +137,10 @@ def main() -> None:
         "mean_pregrasp_distance": summary.get("mean_pregrasp_distance", ""),
         "mean_distance": summary.get("mean_distance", ""),
         "mean_alignment": summary.get("mean_alignment", ""),
+        "mean_pregrasp_alignment": summary.get("mean_pregrasp_alignment", ""),
+        "mean_insertion_alignment": summary.get("mean_insertion_alignment", ""),
+        "mean_target_contact_penalty": summary.get("mean_target_contact_penalty", ""),
+        "mean_insertion_progress": summary.get("mean_insertion_progress", ""),
         "min_distance": summary.get("min_distance", ""),
         "mean_reward": summary.get("mean_reward", ""),
         "checkpoint_path": checkpoint_path,
@@ -143,7 +151,7 @@ def main() -> None:
     }
 
     with LOG_PATH.open("a", encoding="utf-8", newline="") as f:
-        csv.DictWriter(f, fieldnames=FIELDS).writerow(row)
+        csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n").writerow(row)
 
     print("[OK] recorded experiment row:")
     print(" log_path      =", LOG_PATH)

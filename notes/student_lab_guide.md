@@ -1,103 +1,288 @@
-# MT4 로봇팔 강화학습 학생 실습 가이드
+# MT4 로봇팔 강화학습 실험 읽기 자료
 
-## 수업 목표
+## 1. 우리가 하려는 일
 
-MT4 simplified reach task를 이용해 강화학습의 핵심 흐름을 관찰합니다. 학생들은 같은 로봇팔과 같은 목표 task에서 reward, penalty, 학습량을 바꾸며 정책이 어떻게 달라지는지 비교합니다.
+이 프로젝트는 MT4 로봇팔을 Isaac Lab 시뮬레이터에서 강화학습으로 움직이게 만드는 활동입니다. 최종 목표는 우주 탐사 로버에 달린 로봇팔을 상상하고, 목표 물체를 찾고, 접근하고, 집고, 피하고, 쌓는 동작을 스스로 학습하게 만드는 것입니다.
 
-최종 확장 방향은 우주 탐사 로버에 들어갈 로봇팔을 가정하고, 목표 탐색, 접근, 집기, 회피, 쌓기 동작으로 task를 나누어 학습시키는 것입니다.
+처음부터 모든 동작을 한 번에 학습시키지는 않습니다. 지금은 가장 기초 단계인 reach task를 다룹니다. reach task는 로봇팔의 집게 끝이 목표 위치 가까이 가도록 학습하는 문제입니다.
 
-## 현재 baseline task
+현재 task 이름은 다음과 같습니다.
 
-- Task: `Isaac-MT4-Simplified-Reach-Direct-v0`
-- 목표: 접힌 home 자세에서 출발해, gripper tip이 target 표면 근처 touch 지점에 가까워지고, gripper 축이 target을 향하도록 정렬하기
-- Action: 5개 관절의 target delta (`base_yaw`, `shoulder`, `elbow`, `wrist_pitch`, `gripper_pitch`)
-- Observation: 관절 위치/속도, gripper tip 위치, target 위치, touch/pre-grasp 위치, gripper 방향 벡터
-- 기본 학습 조건: `128 envs`, `1000 iterations`, `seed 42`
-- Home joint pose: `base_yaw=0.0`, `shoulder=1.44`, `elbow=-1.19`, `wrist_pitch=1.19`, `gripper_pitch=0.0`
-- 학습용 simplified v3 USD를 사용합니다. v3는 v2에 `gripper_link`와 `gripper_pitch` 관절을 추가한 모델입니다.
-- 접근 방향: 새 `gripper_pitch` 축을 이용해 물체를 위에서 아래로 집기 좋도록 거의 수직 하강하되, 로봇팔 바깥쪽에서 살짝 비스듬히 접근
-- 빨간 공: 실제 물체/목표점
-- 파란 공: 집게 끝이 닿아야 하는 target 표면 근처 touch/pre-grasp 지점
-- 초록 공: pre-grasp 거리와 방향 조건을 만족한 성공 표시
-- 목표 공은 visual marker이며 rigid body로 움직이지 않습니다. 대신 gripper tip이 공 내부로 파고들면 `mean_object_overlap`이 증가하고 보상에서 감점됩니다.
-
-Home pose 또는 접근 방향을 바꾼 뒤에는 이전 checkpoint가 로드되더라도 같은 의미의 baseline이 아닙니다. 새 조건으로 다시 학습한 뒤 checkpoint를 선택합니다.
-
-## 교사용 baseline 실행 순서
-
-실시간 그래프를 먼저 띄우면 학습 중에도 reward와 distance 변화를 볼 수 있습니다.
-
-```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/tensorboard_mt4.sh
+```text
+Isaac-MT4-Simplified-Reach-Direct-v0
 ```
 
-브라우저에서는 `http://spark-da91:6006/` 또는 DGX IP의 `http://<DGX_IP>:6006/`로 접속합니다.
+## 2. 화면에서 보이는 것
 
-```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_128_1000.sh --seed 42
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
-  --run-label baseline_seed42 \
-  --seed 42 \
-  --num-envs 128 \
-  --max-iterations 1000 \
-  --reward-profile baseline \
-  --action-penalty 0.01 \
-  --notes "teacher baseline"
-~/work/robotarm/mt4_isaac_lab_task/scripts/play_best.sh --num_envs 1 --real-time
+화면에는 MT4 로봇팔과 두 종류의 구체가 보입니다.
+
+- 빨간 공: 최종적으로 집어야 할 목표 물체의 위치입니다.
+- 파란 공: 빨간 공을 집기 전에 먼저 접근해야 할 pregrasp 위치입니다.
+- 초록 공: 성공 조건을 만족했을 때 표시되는 위치입니다.
+
+빨간 공은 매 episode마다 랜덤으로 나타납니다. 파란 공은 랜덤이 아닙니다. 빨간 공의 위치가 정해지면, 로봇팔 본체 기준으로 빨간 공을 향해 위쪽 45도 부근에서 접근하도록 계산된 위치입니다.
+
+처음 생각은 이랬습니다.
+
+1. 로봇팔이 접힌 기본 자세에서 시작합니다.
+2. 집게가 먼저 파란 공 위치로 접근합니다.
+3. 집게 방향을 빨간 공을 집기 좋은 방향으로 맞춥니다.
+4. 파란 공에서 빨간 공 쪽으로 천천히 밀어 넣습니다.
+5. 나중에는 집게를 닫아 실제 물체를 잡습니다.
+
+지금은 5번까지 가지 않았습니다. 현재는 1번부터 4번 직전까지를 안정화하는 중입니다.
+
+## 3. 강화학습에서 중요한 말
+
+강화학습은 로봇에게 정답 동작을 직접 알려주지 않습니다. 대신 잘한 행동에는 보상(reward)을 주고, 좋지 않은 행동에는 감점(penalty)을 줍니다. 그러면 로봇은 보상을 많이 받는 방향으로 행동을 바꿉니다.
+
+중요한 점은, 로봇이 우리가 의도한 의미를 이해하지 않는다는 것입니다. 로봇은 오직 수식으로 주어진 보상만 봅니다. 그래서 보상 설계가 조금만 어긋나도, 로봇은 사람이 보기에는 이상하지만 점수는 잘 받는 행동을 찾아낼 수 있습니다.
+
+이번 실험이 바로 그 예시입니다.
+
+## 4. 현재 observation과 action
+
+로봇이 보는 정보(observation)는 대략 다음과 같습니다.
+
+- 현재 관절 각도
+- 현재 관절 속도
+- 집게 끝 위치
+- 빨간 공 위치
+- 파란 공 위치
+- 목표까지의 방향 벡터
+- 집게가 향하는 방향
+
+로봇이 조절하는 값(action)은 5개 관절입니다.
+
+- `base_yaw`
+- `shoulder`
+- `elbow`
+- `wrist_pitch`
+- `gripper_pitch`
+
+여기서 `gripper_pitch`는 집게가 위아래로 접근할 수 있도록 추가한 축입니다.
+
+주의할 점이 하나 있습니다. 로봇의 실제 모양도 학습 난이도에 영향을 줍니다. 집게 폭이 적당해도, 집게가 나뉘기 전의 기둥 같은 부분이 너무 길면 빨간 공과 파란 공 주변으로 자연스럽게 접근하기 어렵습니다. 그래서 simplified v3 모델에서는 집게 폭은 유지하되, 손목에서 집게 끝까지의 길이를 더 짧게 조정했습니다.
+
+## 5. 우리가 한 선택과 결과
+
+### 5.1 처음 baseline
+
+처음에는 목표 위치에 가까워지는 것이 주된 목표였습니다. 하지만 빨간 공만 보고 접근하면, 집게가 실제로 물체를 잡기 좋은 방향으로 접근하지 않을 수 있습니다. 그래서 파란 공을 추가했습니다.
+
+파란 공은 "물체를 잡기 직전 집게가 와야 하는 위치"를 의미합니다.
+
+### 5.2 45도 pregrasp waypoint
+
+그 다음 선택은 파란 공을 빨간 공 기준으로 위쪽 45도 방향에 두는 것이었습니다. 이유는 실제 물체를 집을 때, 옆에서 뚫고 지나가듯 접근하는 것보다 위쪽에서 비스듬히 내려오며 집는 것이 자연스럽기 때문입니다.
+
+이때 reward는 두 단계로 나누었습니다.
+
+1. 파란 공에 가까워지면 보상
+2. 파란 공에 가까워진 뒤 빨간 공 쪽으로 방향을 맞추면 추가 보상
+
+하지만 첫 full 학습 결과는 이상했습니다.
+
+- 거리 자체는 줄었습니다.
+- reward도 증가했습니다.
+- 하지만 집게 방향이 원하는 방향과 반대로 학습되었습니다.
+
+그래프 위치:
+
+```text
+logs/plots/20260514_153925_45deg_pregrasp_seed42_128env_1000iter_g6627543/
 ```
 
-VNC 화면에서 play 창이 보이지 않고 `Authorization required` 또는 `GLFW initialization failed`가 나오면, VNC 터미널에서 아래 명령을 먼저 실행합니다.
+대표 결과:
 
-```bash
-xhost +SI:localuser:spark-robotics
+| 항목 | 시작 | best checkpoint |
+| --- | ---: | ---: |
+| mean pregrasp distance | 0.4132 | 0.1464 |
+| mean distance | 0.4699 | 0.1994 |
+| mean alignment | -0.5248 | -0.8583 |
+| success rate | 0.0 | 0.0 |
+
+해석:
+
+로봇은 목표 근처로 가는 방법은 어느 정도 찾았지만, 집게 방향은 완전히 반대로 맞췄습니다. 즉 reward가 "가까이 가라"는 말은 어느 정도 전달했지만, "이 방향으로 집어라"는 말은 잘못 전달한 것입니다.
+
+이 실패는 중요합니다. 실패했기 때문에 무엇을 고쳐야 하는지 알 수 있었습니다.
+
+### 5.3 집게 방향 기준 수정
+
+선생님은 시연 화면을 보고 "계획했던 것과 반대 방향으로 움직인다"고 판단했습니다. 그래서 집게 방향 보상을 다시 정의했습니다.
+
+기존에는 집게 방향을 파란 공에서 빨간 공으로 들어가는 방향과 맞추려 했습니다. 하지만 실제 화면에서는 집게가 로봇팔 본체 기준으로 파란 공을 향해야 자연스러웠습니다.
+
+그래서 수정했습니다.
+
+- 집게 방향 기준: `파란 공 -> 빨간 공`이 아니라 `로봇 본체 -> 파란 공`
+- 반대 방향으로 향하면 감점
+- 방향 보상을 초반부터 조금씩 제공
+
+그 결과 방향 문제는 좋아졌습니다.
+
+그래프 위치:
+
+```text
+logs/plots/20260514_155506_base_to_blue_visual_16env_300iter/
 ```
 
-그 다음 같은 사용자로 `play_best.sh`를 다시 실행합니다.
+대표 결과:
 
-## 학생 실습에서 바꿀 값
+| 항목 | 시작 | best checkpoint |
+| --- | ---: | ---: |
+| mean pregrasp distance | 0.4211 | 0.3155 |
+| mean distance | 0.4787 | 0.3383 |
+| mean alignment | 0.7671 | 0.8673 |
+| success rate | 0.0 | 0.0 |
 
-처음에는 한 번에 하나만 바꿉니다.
+해석:
 
-- `max_iterations`: 학습량이 부족하거나 충분할 때 그래프가 어떻게 달라지는지 확인
-- `reward weight`: target에 가까워지는 보상을 키우거나 줄여 행동 차이 관찰
-- `action_penalty`: 움직임을 아끼는 정책과 적극적으로 움직이는 정책 비교
-- `approach_horizontal_weight`: 위에서 내려오는 접근을 얼마나 비스듬하게 만들지 비교
+이번에는 방향은 맞았습니다. `mean_alignment`가 양수이고 높게 나왔습니다. 하지만 파란 공까지 충분히 가까이 가지는 못했습니다. 즉 새 문제는 "방향은 맞췄지만 위치 접근이 약하다"입니다.
 
-## 결과 해석 기준
+이것도 좋은 실패입니다. 이제 다음 실험에서는 위치 보상을 더 강하게 하고, 방향 보상이 위치 학습을 압도하지 않도록 조정해야 합니다.
 
-- `success_rate`: 목표 근처에 도달한 병렬 환경의 비율
-- `mean_pregrasp_distance`: 가상 gripper tip과 pre-grasp 지점 사이 평균 거리
-- `mean_distance`: 가상 gripper tip과 실제 target 사이 평균 거리
-- `mean_alignment`: gripper 축이 target을 향하는 정도
-- `mean_reward`: 전체 보상 흐름
-- `episode_length`: 에피소드가 너무 빨리 끝나거나 길게 끌리는지 확인
+### 5.4 세 단계로 다시 나누기
 
-좋은 정책은 success rate만 높다고 끝나지 않습니다. 실제 로봇팔 이식 후보는 mean distance가 낮고, 움직임이 과격하지 않으며, play 화면에서 안정적으로 반복되는 정책이어야 합니다.
+그 다음 선생님은 목표를 더 분명하게 세 단계로 나누었습니다.
 
-학습 장면 자체를 보여줄 때는 병렬 환경을 작게 줄인 visual demo를 사용합니다.
+1. 집게 끝이 먼저 파란 공에 닿는다.
+2. 파란 공에 닿은 뒤에는, 빨간 공으로 들어갈 수 있게 같은 45도 각도로 정렬한다.
+3. 정렬이 끝나면 빨간 공 방향으로 천천히 들어간다.
+
+이렇게 나눈 이유는 실패 원인을 더 잘 보기 위해서입니다. 하나의 success rate만 보면 로봇이 왜 실패했는지 알기 어렵습니다. 하지만 세 단계로 나누면 다음처럼 볼 수 있습니다.
+
+- 파란 공까지 못 갔는가?
+- 파란 공에는 갔지만 방향 정렬을 못 했는가?
+- 방향은 맞췄지만 빨간 공 쪽으로 안전하게 들어가지 못했는가?
+
+그래서 새 reward에서는 초반 접근 방향과 최종 삽입 방향을 분리했습니다.
+
+- 초반 방향: 로봇 본체에서 파란 공을 향하는 방향
+- 삽입 방향: 파란 공에서 빨간 공으로 들어가는 방향
+
+또한 빨간 공은 실제 물체라고 가정합니다. 실제 물체라면 로봇팔이 먼저 부딪히면 물체가 움직이거나 넘어질 수 있습니다. 그래서 빨간 공과 로봇팔 또는 집게가 겹치는 행동은 벌점을 받도록 했습니다.
+
+이번 단계의 자세한 설계 기록은 다음 파일에 정리되어 있습니다.
+
+```text
+notes/mt4_reach_stage_reward_plan.md
+```
+
+### 5.5 집게 길이 수정
+
+이후 화면을 다시 보면서 집게 파트 자체가 너무 길다는 문제를 발견했습니다. 특히 집게가 두 갈래로 나뉘기 전의 기둥 부분이 길어서, 집게 끝이 파란 공에 닿기도 전에 몸통 부분이 목표 주변을 방해할 수 있었습니다.
+
+그래서 집게 폭은 유지하고, 손목에서 집게 끝까지의 길이를 줄였습니다. 동시에 reward에서 사용하는 가상의 집게 끝 위치도 실제 보이는 집게 끝과 맞게 줄였습니다.
+
+이 변경은 중요합니다. 강화학습에서 reward만 바꾸는 것이 아니라, 로봇의 물리적 형상과 측정 기준도 함께 맞아야 합니다. 이전 checkpoint는 더 긴 집게 기준으로 학습된 것이므로, 짧아진 집게 모델에서는 새 baseline을 다시 학습해야 합니다.
+
+### 5.6 순서 바꾸기: 방향 먼저, 접촉은 그 다음
+
+짧아진 집게로 16개 병렬 환경 학습을 다시 돌려 보니, 파란 공까지의 거리는 확실히 좋아졌습니다. 하지만 새 문제가 보였습니다.
+
+- `mean_pregrasp_distance`는 좋아졌습니다.
+- `pregrasp_success_rate`도 아주 조금 생겼습니다.
+- 그런데 `mean_insertion_alignment`는 계속 음수였습니다.
+
+이 말은 로봇이 파란 공 근처로 가기는 하지만, 빨간 공으로 들어갈 방향은 반대로 잡고 있다는 뜻입니다. 그래서 선생님은 "1단계와 2단계의 순서를 바꾸면 어떨까?"라고 제안했습니다.
+
+이 제안은 타당합니다. 파란 공에 먼저 닿아도 집게 방향이 반대라면 다음 동작으로 이어질 수 없습니다. 그래서 reward 순서를 다음처럼 바꾸었습니다.
+
+1. 먼저 빨간 공으로 들어갈 45도 삽입 방향을 맞춘다.
+2. 그 방향을 유지한 채 파란 공에 닿는다.
+3. 파란 공에서 빨간 공 방향으로 천천히 들어간다.
+
+이제 그래프를 볼 때는 `mean_pregrasp_distance`보다 `mean_insertion_alignment`를 먼저 확인해야 합니다. 이 값이 음수에서 양수로 바뀌는지가 다음 실험의 핵심입니다.
+
+## 6. 그래프를 읽는 법
+
+실험 후 생성되는 주요 그래프는 다음 위치에 있습니다.
+
+```text
+logs/plots/
+```
+
+중요한 그래프는 다음과 같습니다.
+
+- `mt4_reward_curve.png`: 전체 보상이 증가하는지 봅니다.
+- `mt4_distance_curve.png`: 목표까지의 거리가 줄어드는지 봅니다.
+- `mt4_alignment_curve.png`: 집게 방향이 의도한 방향과 맞는지 봅니다.
+- `mt4_success_curve.png`: 실제 성공률이 올라가는지 봅니다.
+- `mt4_touch_error_curve.png`: 목표 표면 접촉 위치에 가까워지는지 봅니다.
+- `mt4_insertion_lateral_error_curve.png`: 목표 삽입 경로에서 옆으로 벗어나는 정도를 봅니다.
+- `mt4_stage_curve.png`: stage 2, stage 3 준비율이 생기는지 봅니다.
+- `mt4_safety_curve.png`: 빨간 공과 로봇팔이 겹치거나 너무 가까워지는지 봅니다.
+
+그래프를 볼 때 reward만 보면 안 됩니다. reward가 올라가도 성공률이 0이면, 로봇이 진짜 목표를 배운 것이 아닐 수 있습니다.
+
+이번 실험에서는 reward가 올라갔지만 성공률은 0이었습니다. 그래서 "성공한 정책"이 아니라 "문제점을 알려준 정책"으로 봐야 합니다.
+
+## 7. 실행 명령
+
+병렬 학습 장면을 Isaac Sim에서 직접 보려면 다음을 실행합니다.
 
 ```bash
 ~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
 ```
 
-best checkpoint를 한 로봇팔로만 볼 때는 아래 명령을 사용합니다.
+긴 baseline 학습은 다음을 실행합니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/play_best_single.sh
+~/work/robotarm/mt4_isaac_lab_task/scripts/train_128_1000.sh --seed 42
 ```
 
-## 확장 로드맵
+학습 후 그래프를 만들고 best checkpoint를 고릅니다.
 
-1. Reach 안정화: 목표점 접근을 반복적으로 성공시킵니다.
-2. Pre-grasp: 물체 바로 앞의 안전한 접근 위치까지 이동합니다.
-3. Grasp: gripper 제어를 추가하고 잡기 성공 조건을 정의합니다.
-4. Avoid: 자기 충돌, 바닥, 장애물 회피 penalty를 추가합니다.
-5. Stack: 물체를 집어서 목표 위치에 쌓는 long-horizon task로 확장합니다.
+```bash
+~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+```
 
-## 실제 로봇팔 이식 전 안전 기준
+best checkpoint 하나를 실제 시연처럼 봅니다.
 
-- 관절 limit과 속도 limit을 시뮬레이션과 실제 제어 코드 양쪽에서 제한합니다.
-- 첫 실제 구동은 낮은 속도와 작은 동작 범위에서 시작합니다.
-- emergency stop 절차를 학생들이 먼저 설명할 수 있어야 합니다.
-- 시뮬레이션에서 안정적인 정책만 실제 로봇으로 이동합니다.
+```bash
+DEMO_SECONDS=120 ~/work/robotarm/mt4_isaac_lab_task/scripts/play_best_demo.sh
+```
+
+VNC 화면에서 Isaac Sim 창이 뜨지 않으면 먼저 실행합니다.
+
+```bash
+xhost +SI:localuser:spark-robotics
+```
+
+## 8. 다음 실험 제안
+
+다음 실험의 목표는 "삽입 방향 정렬, 파란 공 접촉, 안전한 진입"을 순서대로 확인하는 것입니다.
+
+바꿔볼 만한 값은 다음과 같습니다.
+
+- stage 1 insertion alignment 보상 가중치
+- stage 2 pregrasp 보상 가중치
+- stage 3 insertion line/touch 보상 가중치
+- target contact penalty 가중치
+- action, joint velocity, time penalty
+- target 범위를 처음에는 조금 좁게 해서 쉬운 문제부터 학습
+
+예상되는 좋은 변화는 다음과 같습니다.
+
+- `mean_insertion_alignment`가 음수에서 양수로 올라감
+- `stage2_alignment_ready_rate`가 0보다 커짐
+- `mean_pregrasp_distance`가 0.3m 아래로 내려감
+- `pregrasp_success_rate`가 0보다 커짐
+- `mean_target_contact_penalty`가 낮게 유지됨
+- 화면에서 집게가 파란 공 방향으로 더 적극적으로 이동함
+
+## 9. 이 실험에서 배울 점
+
+이번 실험은 아직 성공한 로봇팔을 만든 실험이 아닙니다. 하지만 강화학습을 이해하기에는 좋은 실험입니다.
+
+우리가 배운 점은 다음과 같습니다.
+
+- 목표 위치를 정하는 것과 목표 방향을 정하는 것은 다릅니다.
+- reward가 올라가도 실제로 원하는 행동이 아닐 수 있습니다.
+- 실패 그래프는 다음 수정 방향을 알려줍니다.
+- 시뮬레이션을 눈으로 보는 것과 수치를 보는 것을 함께 해야 합니다.
+- 강화학습 실험은 한 번에 완성되는 것이 아니라, 가설을 세우고 실험하고 해석하고 고치는 반복 과정입니다.
+
+이 과정을 실제 로봇팔에 적용하려면 더 엄격한 안전 조건이 필요합니다. 실제 로봇에서는 관절 속도, 힘, 이동 범위를 제한하고, emergency stop을 준비해야 합니다. 시뮬레이션에서 충분히 안정적인 정책만 실제 MT4 로봇팔로 옮길 수 있습니다.

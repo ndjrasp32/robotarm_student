@@ -24,6 +24,9 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_mean_pregrasp_distance"] = to_float(row.get("mean_pregrasp_distance"))
         row["_mean_distance"] = to_float(row.get("mean_distance"))
         row["_mean_alignment"] = to_float(row.get("mean_alignment"))
+        row["_mean_pregrasp_alignment"] = to_float(row.get("mean_pregrasp_alignment"))
+        row["_mean_insertion_alignment"] = to_float(row.get("mean_insertion_alignment"))
+        row["_mean_target_contact_penalty"] = to_float(row.get("mean_target_contact_penalty"))
         row["_mean_reward"] = to_float(row.get("mean_reward"))
         row["_primary_distance"] = row["_mean_pregrasp_distance"]
         if row["_primary_distance"] is None:
@@ -63,12 +66,17 @@ else:
                 target_standoff_error = abs((target_distance or 0.055) - 0.055)
                 success = r["_success_rate"] or 0.0
                 alignment = r["_mean_alignment"] or 0.0
+                pregrasp_alignment = r["_mean_pregrasp_alignment"] or alignment
+                insertion_alignment = r["_mean_insertion_alignment"] or alignment
+                contact_penalty = r["_mean_target_contact_penalty"] or 0.0
                 reward = r["_mean_reward"] or 0.0
                 return (
                     -distance
                     -0.25 * target_standoff_error
-                    +0.08 * alignment
+                    +0.05 * pregrasp_alignment
+                    +0.08 * insertion_alignment
                     +10.0 * success
+                    -5.0 * contact_penalty
                     +0.000001 * reward
                 )
 
@@ -106,6 +114,9 @@ print("success_rate  =", best.get("success_rate"))
 print("pregrasp_dist =", best.get("mean_pregrasp_distance"))
 print("mean_distance =", best.get("mean_distance"))
 print("mean_alignment=", best.get("mean_alignment"))
+print("pregrasp_align=", best.get("mean_pregrasp_alignment"))
+print("insert_align  =", best.get("mean_insertion_alignment"))
+print("contact_penalty=", best.get("mean_target_contact_penalty"))
 print("min_distance  =", best.get("min_distance"))
 print("mean_reward   =", best.get("mean_reward"))
 print("path          =", best.get("path"))
