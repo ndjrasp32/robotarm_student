@@ -62,3 +62,21 @@ Notes:
 - Changed the visible gripper module to follow the same convention as the other MT4 arm links: the child link starts at the joint and extends along local `+X`.
 - Replaced the inner gripper-like connector with a plain `mount_arm` and compact `tool_mount`; only the outermost elements are shaped as gripper fingers.
 - Updated the fingertip offset and forward axis to local `+X` so reward/marker geometry follows the visible gripper tip.
+
+## 2026-05-14 45-degree pregrasp waypoint and two-stage reward
+
+- Kept the red sphere as the random final object/target marker.
+- Changed the blue sphere into a deterministic pregrasp waypoint derived from the red sphere:
+  - red target is sampled randomly within the configured target range
+  - approach direction is computed from the robot base toward the target plus downward motion
+  - horizontal and downward weights are both `1.0`, so the desired insertion path is roughly 45 degrees from above
+  - blue pregrasp marker is placed at `target - pregrasp_standoff * approach_dir`
+  - touch/contact marker target is placed at `target - desired_touch_distance * approach_dir`
+- Reward is now staged:
+  - stage 1 rewards reaching the blue pregrasp waypoint
+  - stage 2 is gated by stage 1 and rewards alignment with the 45-degree approach direction plus moving toward the red target surface
+- Added/updated logged metrics:
+  - `mt4/pregrasp_success_rate`
+  - `mt4/mean_touch_target_distance`
+  - `mt4/mean_insertion_lateral_error`
+- Relaxed the final success thresholds slightly so early experiments can show measurable improvement while still penalizing overlap with the target marker.

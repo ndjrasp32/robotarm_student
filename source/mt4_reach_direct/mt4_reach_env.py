@@ -120,7 +120,7 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
 
     # task
     action_scale = 0.045
-    success_radius = 0.030
+    success_radius = 0.040
     target_x_range = (0.20, 0.32)
     target_y_range = (-0.16, 0.16)
     target_z_range = (0.08, 0.18)
@@ -131,12 +131,14 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     gripper_forward_axis_b = (1.0, 0.0, 0.0)
     target_radius = 0.035
     desired_touch_distance = 0.040
-    touch_success_band = 0.018
-    pregrasp_standoff = 0.040
-    approach_horizontal_weight = 0.18
+    touch_success_band = 0.026
+    pregrasp_standoff = 0.080
+    pregrasp_success_radius = 0.050
+    approach_horizontal_weight = 1.0
     approach_down_weight = 1.0
     min_object_clearance = 0.035
-    alignment_success = 0.72
+    max_success_overlap = 0.003
+    alignment_success = 0.62
 
 
 class MT4ReachEnv(DirectRLEnv):
@@ -170,10 +172,14 @@ class MT4ReachEnv(DirectRLEnv):
         self.gripper_forward = torch.zeros((self.num_envs, 3), device=self.device)
         self.approach_dir = torch.zeros((self.num_envs, 3), device=self.device)
         self.pregrasp_targets = torch.zeros((self.num_envs, 3), device=self.device)
+        self.touch_targets = torch.zeros((self.num_envs, 3), device=self.device)
         self.to_target = torch.zeros((self.num_envs, 3), device=self.device)
         self.to_pregrasp = torch.zeros((self.num_envs, 3), device=self.device)
+        self.to_touch = torch.zeros((self.num_envs, 3), device=self.device)
         self.distance = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_distance = torch.zeros((self.num_envs,), device=self.device)
+        self.touch_target_distance = torch.zeros((self.num_envs,), device=self.device)
+        self.insertion_lateral_error = torch.zeros((self.num_envs,), device=self.device)
         self.alignment = torch.zeros((self.num_envs,), device=self.device)
         self.clearance_error = torch.zeros((self.num_envs,), device=self.device)
         self.touch_error = torch.zeros((self.num_envs,), device=self.device)
@@ -230,27 +236,32 @@ class MT4ReachEnv(DirectRLEnv):
     def _get_rewards(self):
         self._compute_intermediate_values()
 
-        pregrasp_reward = 1.0 / (1.0 + 35.0 * self.pregrasp_distance * self.pregrasp_distance)
-        close_reward = torch.exp(-10.0 * self.pregrasp_distance)
-        touch_ready_reward = torch.exp(-900.0 * self.touch_error * self.touch_error)
+        pregrasp_reward = 1.0 / (1.0 + 45.0 * self.pregrasp_distance * self.pregrasp_distance)
+        close_reward = torch.exp(-18.0 * self.pregrasp_distance)
+        pregrasp_gate = torch.exp(-500.0 * self.pregrasp_distance * self.pregrasp_distance)
         alignment_reward = torch.clamp(0.5 * (self.alignment + 1.0), min=0.0, max=1.0)
+        touch_ready_reward = torch.exp(-700.0 * self.touch_target_distance * self.touch_target_distance)
+        insertion_line_reward = torch.exp(-1200.0 * self.insertion_lateral_error * self.insertion_lateral_error)
         action_penalty = torch.sum(self.actions * self.actions, dim=-1)
+        pregrasp_success = self.pregrasp_distance < self.cfg.pregrasp_success_radius
         success = (
-            (self.pregrasp_distance < self.cfg.success_radius)
+            (self.touch_target_distance < self.cfg.success_radius)
             & (self.alignment > self.cfg.alignment_success)
             & (self.touch_error < self.cfg.touch_success_band)
-            & (self.object_overlap <= 0.0)
+            & (self.insertion_lateral_error < self.cfg.touch_success_band)
+            & (self.object_overlap <= self.cfg.max_success_overlap)
         )
-        success_bonus = success.float() * 8.0
+        pregrasp_bonus = pregrasp_success.float() * 1.5
+        success_bonus = success.float() * 10.0
 
         reward = (
-            1.4 * pregrasp_reward
-            + 0.9 * close_reward
-            + 1.4 * alignment_reward
-            + 1.6 * touch_ready_reward
+            2.2 * pregrasp_reward
+            + 1.2 * close_reward
+            + pregrasp_gate * (1.8 * alignment_reward + 2.0 * insertion_line_reward + 2.2 * touch_ready_reward)
+            + pregrasp_bonus
             + success_bonus
-            - 35.0 * self.object_overlap
-            - 0.01 * action_penalty
+            - 45.0 * self.object_overlap
+            - 0.012 * action_penalty
         )
         return reward
 
@@ -258,18 +269,23 @@ class MT4ReachEnv(DirectRLEnv):
         self._compute_intermediate_values()
 
         success = (
-            (self.pregrasp_distance < self.cfg.success_radius)
+            (self.touch_target_distance < self.cfg.success_radius)
             & (self.alignment > self.cfg.alignment_success)
             & (self.touch_error < self.cfg.touch_success_band)
-            & (self.object_overlap <= 0.0)
+            & (self.insertion_lateral_error < self.cfg.touch_success_band)
+            & (self.object_overlap <= self.cfg.max_success_overlap)
         )
+        pregrasp_success = self.pregrasp_distance < self.cfg.pregrasp_success_radius
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
         # Training/evaluation logs.
         self.extras["log"] = {
             "mt4/success_rate": success.float().mean(),
+            "mt4/pregrasp_success_rate": pregrasp_success.float().mean(),
             "mt4/mean_distance": self.distance.mean(),
             "mt4/mean_pregrasp_distance": self.pregrasp_distance.mean(),
+            "mt4/mean_touch_target_distance": self.touch_target_distance.mean(),
+            "mt4/mean_insertion_lateral_error": self.insertion_lateral_error.mean(),
             "mt4/mean_alignment": self.alignment.mean(),
             "mt4/mean_touch_error": self.touch_error.mean(),
             "mt4/mean_object_overlap": self.object_overlap.mean(),
@@ -317,7 +333,28 @@ class MT4ReachEnv(DirectRLEnv):
         self.targets[env_ids, 1] = y
         self.targets[env_ids, 2] = z
 
+        self._compute_target_geometry(env_ids)
         self._update_target_markers()
+
+    def _compute_target_geometry(self, env_ids: torch.Tensor | None = None):
+        if env_ids is None:
+            env_ids = torch.arange(self.num_envs, device=self.device)
+
+        targets = self.targets[env_ids]
+        radial_dir = targets.clone()
+        radial_dir[:, 2] = 0.0
+        fallback = torch.tensor([1.0, 0.0, 0.0], device=self.device).repeat(len(env_ids), 1)
+        radial_norm = torch.linalg.norm(radial_dir, dim=-1, keepdim=True)
+        radial_dir = torch.where(radial_norm > 1e-6, radial_dir / torch.clamp(radial_norm, min=1e-6), fallback)
+        down_dir = torch.tensor([0.0, 0.0, -1.0], device=self.device).repeat(len(env_ids), 1)
+        approach_dir = self.cfg.approach_horizontal_weight * radial_dir + self.cfg.approach_down_weight * down_dir
+        approach_dir = approach_dir / torch.clamp(torch.linalg.norm(approach_dir, dim=-1, keepdim=True), min=1e-6)
+
+        # The blue sphere is the first-stage waypoint: above and slightly robot-side of the red target.
+        # From blue to red, the desired insertion motion follows approach_dir at roughly 45 degrees.
+        self.approach_dir[env_ids] = approach_dir
+        self.pregrasp_targets[env_ids] = targets - self.cfg.pregrasp_standoff * approach_dir
+        self.touch_targets[env_ids] = targets - self.cfg.desired_touch_distance * approach_dir
 
     def _compute_intermediate_values(self):
         wrist_pos_w = self.robot.data.body_pos_w[:, self.ee_body_id, :]
@@ -330,24 +367,18 @@ class MT4ReachEnv(DirectRLEnv):
         self.gripper_forward = math_utils.quat_apply(wrist_quat_w, forward_axis_b)
         self.gripper_forward = self.gripper_forward / torch.clamp(torch.linalg.norm(self.gripper_forward, dim=-1, keepdim=True), min=1e-6)
 
-        radial_dir = self.targets.clone()
-        radial_dir[:, 2] = 0.0
-        fallback = torch.tensor([1.0, 0.0, 0.0], device=self.device).repeat(self.num_envs, 1)
-        radial_norm = torch.linalg.norm(radial_dir, dim=-1, keepdim=True)
-        radial_dir = torch.where(radial_norm > 1e-6, radial_dir / torch.clamp(radial_norm, min=1e-6), fallback)
-        down_dir = torch.tensor([0.0, 0.0, -1.0], device=self.device).repeat(self.num_envs, 1)
-        self.approach_dir = self.cfg.approach_horizontal_weight * radial_dir + self.cfg.approach_down_weight * down_dir
-        self.approach_dir = self.approach_dir / torch.clamp(torch.linalg.norm(self.approach_dir, dim=-1, keepdim=True), min=1e-6)
-        self.pregrasp_targets = self.targets - self.cfg.pregrasp_standoff * self.approach_dir
-
         self.to_target = self.targets - self.gripper_tip_pos
         self.to_pregrasp = self.pregrasp_targets - self.gripper_tip_pos
+        self.to_touch = self.touch_targets - self.gripper_tip_pos
         self.distance = torch.linalg.norm(self.to_target, dim=-1)
         self.pregrasp_distance = torch.linalg.norm(self.to_pregrasp, dim=-1)
+        self.touch_target_distance = torch.linalg.norm(self.to_touch, dim=-1)
         self.touch_error = torch.abs(self.distance - self.cfg.desired_touch_distance)
         self.object_overlap = torch.clamp(self.cfg.target_radius - self.distance, min=0.0)
-        target_dir = self.to_target / torch.clamp(self.distance.unsqueeze(-1), min=1e-6)
-        self.alignment = torch.sum(self.gripper_forward * target_dir, dim=-1)
+        insertion_axis = torch.sum(self.to_touch * self.approach_dir, dim=-1, keepdim=True) * self.approach_dir
+        insertion_lateral = self.to_touch - insertion_axis
+        self.insertion_lateral_error = torch.linalg.norm(insertion_lateral, dim=-1)
+        self.alignment = torch.sum(self.gripper_forward * self.approach_dir, dim=-1)
         self.clearance_error = torch.clamp(self.cfg.min_object_clearance - self.distance, min=0.0)
 
     def _update_target_markers(self):
@@ -366,10 +397,11 @@ class MT4ReachEnv(DirectRLEnv):
             # If success, show green marker at target.
             # If not success, hide marker far below the ground.
             success = (
-                (self.pregrasp_distance < self.cfg.success_radius)
+                (self.touch_target_distance < self.cfg.success_radius)
                 & (self.alignment > self.cfg.alignment_success)
                 & (self.touch_error < self.cfg.touch_success_band)
-                & (self.object_overlap <= 0.0)
+                & (self.insertion_lateral_error < self.cfg.touch_success_band)
+                & (self.object_overlap <= self.cfg.max_success_overlap)
             )
             success_pos_w = target_pos_w.clone()
             success_pos_w[~success, 2] = -10.0
