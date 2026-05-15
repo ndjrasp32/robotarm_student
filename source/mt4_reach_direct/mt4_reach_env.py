@@ -197,6 +197,10 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     moving_pregrasp_step_radius = 0.055
     moving_pregrasp_hold_steps = 1
     moving_pregrasp_reward_weight = 0.0
+    moving_pregrasp_funnel_weight = 0.0
+    moving_pregrasp_funnel_depth = 0.090
+    moving_pregrasp_funnel_min_radius = 0.020
+    moving_pregrasp_funnel_max_radius = 0.070
     final_insertion_weight = 0.0
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
@@ -297,6 +301,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.moving_pregrasp_hold_count = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
         self.moving_pregrasp_step_ready = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.moving_pregrasp_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.moving_pregrasp_funnel_reward = torch.zeros((self.num_envs,), device=self.device)
         self.final_insertion_reward = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -446,6 +451,18 @@ class MT4ReachEnv(DirectRLEnv):
             )
             cfg.moving_pregrasp_reward_weight = float(
                 os.environ.get("MT4_REACH_MOVING_PREGRASP_REWARD_WEIGHT", "0.0")
+            )
+            cfg.moving_pregrasp_funnel_weight = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_WEIGHT", "0.0")
+            )
+            cfg.moving_pregrasp_funnel_depth = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_DEPTH", "0.090")
+            )
+            cfg.moving_pregrasp_funnel_min_radius = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_MIN_RADIUS", "0.020")
+            )
+            cfg.moving_pregrasp_funnel_max_radius = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_MAX_RADIUS", "0.070")
             )
             cfg.final_insertion_weight = float(
                 os.environ.get("MT4_REACH_FINAL_INSERTION_WEIGHT", "0.0")
@@ -763,6 +780,27 @@ class MT4ReachEnv(DirectRLEnv):
             * insertion_alignment_reward
             * (0.50 + 0.50 * center_shortest_path_score)
         )
+        funnel_depth = max(float(self.cfg.moving_pregrasp_funnel_depth), 1e-6)
+        funnel_min_radius = max(float(self.cfg.moving_pregrasp_funnel_min_radius), 1e-6)
+        funnel_max_radius = max(float(self.cfg.moving_pregrasp_funnel_max_radius), funnel_min_radius)
+        blue_axis = torch.sum(self.to_pregrasp * self.approach_dir, dim=-1)
+        blue_lateral = self.to_pregrasp - blue_axis.unsqueeze(-1) * self.approach_dir
+        blue_lateral_error = torch.linalg.norm(blue_lateral, dim=-1)
+        blue_axis_clamped = torch.clamp(blue_axis, min=0.0, max=funnel_depth)
+        blue_axis_fraction = blue_axis_clamped / funnel_depth
+        blue_allowed_radius = funnel_min_radius + blue_axis_fraction * (funnel_max_radius - funnel_min_radius)
+        blue_lateral_reward = torch.exp(
+            -torch.square(blue_lateral_error / torch.clamp(blue_allowed_radius, min=1e-6))
+        )
+        blue_depth_reward = torch.clamp(1.0 - blue_axis_clamped / funnel_depth, min=0.0, max=1.0)
+        blue_front_gate = ((blue_axis >= -0.010) & (blue_axis <= funnel_depth)).float()
+        moving_pregrasp_funnel_reward = (
+            self.stage2_latched.float()
+            * blue_front_gate
+            * insertion_alignment_reward
+            * (0.50 + 0.50 * center_shortest_path_score)
+            * (0.60 * blue_lateral_reward + 0.40 * blue_depth_reward)
+        )
         final_insertion_gate = self.stage3_latched.float()
         if self.cfg.moving_pregrasp_enabled:
             final_insertion_gate = final_insertion_gate * (
@@ -801,6 +839,7 @@ class MT4ReachEnv(DirectRLEnv):
                 + self.cfg.stage3_time_preserve_weight * stage3_time_preserve
                 + self.cfg.stage_latch_weight * stage_latch_reward
                 + self.cfg.moving_pregrasp_reward_weight * moving_pregrasp_reward
+                + self.cfg.moving_pregrasp_funnel_weight * moving_pregrasp_funnel_reward
                 + self.cfg.final_insertion_weight * final_insertion_reward
                 + self.cfg.stage4_center_improvement_weight
                 * center_improvement_reward
@@ -837,6 +876,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage_latch_reward = stage_latch_reward
         self.progressive_stage_weight = progressive_stage_weight
         self.moving_pregrasp_reward = moving_pregrasp_reward
+        self.moving_pregrasp_funnel_reward = moving_pregrasp_funnel_reward
         self.final_insertion_reward = final_insertion_reward
         self.stage4_time_pressure = stage4_time_pressure
         return reward
@@ -986,6 +1026,9 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_moving_pregrasp_reward": getattr(
                 self, "moving_pregrasp_reward", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_moving_pregrasp_funnel_reward": getattr(
+                self, "moving_pregrasp_funnel_reward", torch.zeros_like(self.distance)
+            ).mean(),
             "mt4/mean_final_insertion_reward": getattr(
                 self, "final_insertion_reward", torch.zeros_like(self.distance)
             ).mean(),
@@ -1030,6 +1073,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.moving_pregrasp_hold_count[env_ids] = 0
         self.moving_pregrasp_step_ready[env_ids] = False
         self.moving_pregrasp_reward[env_ids] = 0.0
+        self.moving_pregrasp_funnel_reward[env_ids] = 0.0
         self.final_insertion_reward[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False

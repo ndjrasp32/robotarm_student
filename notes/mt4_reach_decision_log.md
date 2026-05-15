@@ -764,3 +764,48 @@
   - 하지만 아직 final center 성공률을 만들 만큼 강하지 않다.
   - 다음 실험은 guide-following을 먼저 확실히 학습시키는 2단계 schedule이 적절하다.
   - 예: `0.045m/2 frames/reward 24`로 성공 사례를 늘리고, 이후 `0.035m/4 frames`, 마지막에 `0.018m/8 frames`로 조인다.
+
+## 2026-05-15 blue funnel reward proposal
+
+- 선생님 의견:
+  - 파란 구체를 딱 한 점 터치로 보지 말고, 로봇팔 방향으로 부채꼴처럼 열린 진입 유도 영역으로 보면 좋겠다.
+  - 빨간 구체처럼 파란 구체도 진입 유도 역할을 해야 한다.
+  - 이상한 수치가 크게 튀지 않는다면 더 오래 학습했을 때 결과가 나올 가능성이 있다.
+- Codex 제안:
+  - 파란 구체 중심 보상은 유지하되, 그 앞단에 funnel reward를 추가한다.
+  - funnel은 파란 구체에서 멀수록 허용 반경이 넓고, 파란 구체에 가까워질수록 중심 정렬을 요구한다.
+  - 파란 구체를 지나쳐 빨간 구체 방향으로 넘어간 위치에는 funnel reward를 거의 주지 않는다.
+- 적용:
+  - `mean_moving_pregrasp_funnel_reward` 지표 추가
+  - `MT4_REACH_MOVING_PREGRASP_FUNNEL_WEIGHT`
+  - `MT4_REACH_MOVING_PREGRASP_FUNNEL_DEPTH`
+  - `MT4_REACH_MOVING_PREGRASP_FUNNEL_MIN_RADIUS`
+  - `MT4_REACH_MOVING_PREGRASP_FUNNEL_MAX_RADIUS`
+  - 긴 학습용 `scripts/train_stage4_blue_funnel_128_800.sh` 추가
+- 다음 실험:
+  - 먼저 `0.045m/2 frames/funnel_weight 14`로 넓게 학습한다.
+  - 이후 안정적인 checkpoint에서 `0.035m/4 frames`, 마지막에 `0.018m/8 frames`로 조인다.
+
+## 2026-05-15 blue funnel training result
+
+- 실행:
+  - run은 `2026-05-15_15-38-38`이었다.
+  - `2026-05-15_14-54-32/model_1899.pt`에서 이어서 학습했다.
+  - 학습 조건은 `steps=5`, `step_radius=0.045`, `hold_steps=2`, `moving_reward=24`, `funnel_weight=14`였다.
+  - best checkpoint는 `model_2100.pt`로 선택되었다.
+- 선생님 아이디어 반영:
+  - 파란 구체를 정확한 한 점이 아니라, 로봇팔 쪽으로 열린 진입 유도 영역으로 해석했다.
+  - 파란 구체에 가까워질수록 중심 정렬을 강하게 요구하고, 멀리서는 넓은 부채꼴 안으로 들어오도록 보상했다.
+- Codex 평가:
+  - 부채꼴 유도는 효과가 있었다.
+  - selected checkpoint 기준 `moving_pregrasp_final_rate=0.521728515625`, `mean_moving_pregrasp_funnel_reward=0.16175898909568787`였다.
+  - 학습 후반에는 `moving_pregrasp_final_rate`가 0.8대까지 올라가며 guide-following 행동이 훨씬 강해졌다.
+  - `mean_distance`도 후반에는 약 0.03m 수준까지 내려갔다.
+- 한계:
+  - strict final success는 아직 낮다. selected checkpoint의 `success_rate=0.00048828125`, `stage4_center_ready_rate=0.00048828125`였다.
+  - `mean_final_insertion_reward=0.014700287021696568`로, 최종 삽입 보상은 아직 충분히 살아나지 않았다.
+  - 후반에는 `mean_object_overlap`이 0.006-0.008 정도 발생해, guide를 따라가다가 target 내부 쪽으로 살짝 파고드는 경향이 보였다.
+- 결론:
+  - 이번 실험은 "파란 guide를 따라 접근하는 것"은 성공했다.
+  - 다음 문제는 "guide 끝에서 빨간 구체 중심이 집게 사이에 들어가도록 final insertion을 따로 학습시키는 것"이다.
+  - 교육적으로는 좋은 실패 사례다. 복잡한 로봇팔 강화학습에서 중간 목표를 잘 만들면 행동 일부는 빠르게 좋아지지만, 마지막 성공 조건은 별도 보상/커리큘럼이 필요하다는 점을 보여준다.
