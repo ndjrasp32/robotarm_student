@@ -60,6 +60,10 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_mean_near_terminal_reward"] = to_float(row.get("mean_near_terminal_reward"))
         row["_mean_stage_latch_reward"] = to_float(row.get("mean_stage_latch_reward"))
         row["_mean_progressive_stage_weight"] = to_float(row.get("mean_progressive_stage_weight"))
+        row["_mean_moving_pregrasp_fraction"] = to_float(row.get("mean_moving_pregrasp_fraction"))
+        row["_moving_pregrasp_final_rate"] = to_float(row.get("moving_pregrasp_final_rate"))
+        row["_mean_moving_pregrasp_reward"] = to_float(row.get("mean_moving_pregrasp_reward"))
+        row["_mean_final_insertion_reward"] = to_float(row.get("mean_final_insertion_reward"))
         row["_mean_pregrasp_line_error"] = to_float(row.get("mean_pregrasp_line_error"))
         row["_mean_reward"] = to_float(row.get("mean_reward"))
         row["_primary_distance"] = row["_mean_pregrasp_distance"]
@@ -134,6 +138,10 @@ else:
                 near_terminal_reward = r["_mean_near_terminal_reward"] or 0.0
                 stage_latch_reward = r["_mean_stage_latch_reward"] or 0.0
                 progressive_stage_weight = r["_mean_progressive_stage_weight"] or 0.0
+                moving_pregrasp_fraction = r["_mean_moving_pregrasp_fraction"] or 0.0
+                moving_pregrasp_final = r["_moving_pregrasp_final_rate"] or 0.0
+                moving_pregrasp_reward = r["_mean_moving_pregrasp_reward"] or 0.0
+                final_insertion_reward = r["_mean_final_insertion_reward"] or 0.0
                 line_error = r["_mean_pregrasp_line_error"] or 0.0
                 reward = r["_mean_reward"] or 0.0
                 return (
@@ -170,6 +178,10 @@ else:
                     +0.40 * near_terminal_reward
                     +0.20 * stage_latch_reward
                     +0.05 * progressive_stage_weight
+                    +0.20 * moving_pregrasp_fraction
+                    +0.60 * moving_pregrasp_final
+                    +0.20 * moving_pregrasp_reward
+                    +0.80 * final_insertion_reward
                     -0.05 * stage4_time_pressure
                     -0.50 * (best_center_distance if best_center_distance is not None else distance)
                     +10.0 * success
@@ -247,6 +259,10 @@ print("term_quality =", best.get("mean_terminal_success_quality"))
 print("near_terminal=", best.get("mean_near_terminal_reward"))
 print("stage_latch =", best.get("mean_stage_latch_reward"))
 print("progressive =", best.get("mean_progressive_stage_weight"))
+print("moving_frac =", best.get("mean_moving_pregrasp_fraction"))
+print("moving_final=", best.get("moving_pregrasp_final_rate"))
+print("moving_reward=", best.get("mean_moving_pregrasp_reward"))
+print("final_insert=", best.get("mean_final_insertion_reward"))
 print("line_error   =", best.get("mean_pregrasp_line_error"))
 print("min_distance  =", best.get("min_distance"))
 print("mean_reward   =", best.get("mean_reward"))

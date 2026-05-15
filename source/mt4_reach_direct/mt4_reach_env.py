@@ -190,6 +190,12 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     near_terminal_radius = 0.050
     stage_latch_weight = 0.0
     progressive_stage_weight = 0.0
+    moving_pregrasp_enabled = False
+    moving_pregrasp_step_count = 3
+    moving_pregrasp_final_fraction = 0.70
+    moving_pregrasp_step_radius = 0.055
+    moving_pregrasp_reward_weight = 0.0
+    final_insertion_weight = 0.0
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
     stage4_push_ready_progress = 0.60
@@ -247,6 +253,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.desired_pregrasp_dir = torch.zeros((self.num_envs, 3), device=self.device)
         self.desired_insertion_dir = torch.zeros((self.num_envs, 3), device=self.device)
         self.pregrasp_entry_targets = torch.zeros((self.num_envs, 3), device=self.device)
+        self.pregrasp_start_targets = torch.zeros((self.num_envs, 3), device=self.device)
+        self.pregrasp_goal_targets = torch.zeros((self.num_envs, 3), device=self.device)
         self.pregrasp_targets = torch.zeros((self.num_envs, 3), device=self.device)
         self.touch_targets = torch.zeros((self.num_envs, 3), device=self.device)
         self.to_target = torch.zeros((self.num_envs, 3), device=self.device)
@@ -282,6 +290,10 @@ class MT4ReachEnv(DirectRLEnv):
         self.near_terminal_reward = torch.zeros((self.num_envs,), device=self.device)
         self.stage_latch_reward = torch.zeros((self.num_envs,), device=self.device)
         self.progressive_stage_weight = torch.zeros((self.num_envs,), device=self.device)
+        self.moving_pregrasp_stage = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+        self.moving_pregrasp_fraction = torch.zeros((self.num_envs,), device=self.device)
+        self.moving_pregrasp_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.final_insertion_reward = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.pregrasp_held = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -400,6 +412,24 @@ class MT4ReachEnv(DirectRLEnv):
             )
             cfg.progressive_stage_weight = float(
                 os.environ.get("MT4_REACH_PROGRESSIVE_STAGE_WEIGHT", "0.0")
+            )
+            cfg.moving_pregrasp_enabled = os.environ.get(
+                "MT4_REACH_MOVING_PREGRASP", "0"
+            ).strip().lower() in ("1", "true", "yes", "on")
+            cfg.moving_pregrasp_step_count = int(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_STEPS", "3")
+            )
+            cfg.moving_pregrasp_final_fraction = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_FINAL_FRACTION", "0.70")
+            )
+            cfg.moving_pregrasp_step_radius = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_STEP_RADIUS", "0.055")
+            )
+            cfg.moving_pregrasp_reward_weight = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_REWARD_WEIGHT", "0.0")
+            )
+            cfg.final_insertion_weight = float(
+                os.environ.get("MT4_REACH_FINAL_INSERTION_WEIGHT", "0.0")
             )
             cfg.center_push_improvement_scale = float(
                 os.environ.get("MT4_REACH_CENTER_PUSH_IMPROVEMENT_SCALE", "0.012")
@@ -706,6 +736,25 @@ class MT4ReachEnv(DirectRLEnv):
             * insertion_alignment_reward
             * touch_ready_reward
         ) * progressive_stage_weight
+        moving_pregrasp_step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
+        moving_pregrasp_stage_progress = self.moving_pregrasp_stage.float() / float(moving_pregrasp_step_count)
+        moving_pregrasp_reward = (
+            moving_pregrasp_stage_progress
+            * pregrasp_touch_reward
+            * insertion_alignment_reward
+            * (0.50 + 0.50 * center_shortest_path_score)
+        )
+        final_insertion_gate = self.stage3_latched.float()
+        if self.cfg.moving_pregrasp_enabled:
+            final_insertion_gate = final_insertion_gate * (
+                self.moving_pregrasp_stage >= moving_pregrasp_step_count
+            ).float()
+        final_insertion_reward = final_insertion_gate * (
+            0.40 * center_push_reward
+            + 0.30 * center_push_improvement_reward * center_shortest_path_score
+            + 0.20 * center_shell_reward * center_shortest_path_score
+            + 0.10 * near_terminal_reward
+        )
         pregrasp_bonus = pregrasp_success.float() * self.cfg.pregrasp_bonus_weight
         success_bonus = success.float() * self.cfg.success_bonus_weight
         success_reward = success_bonus + self.cfg.terminal_success_quality_weight * terminal_success_quality
@@ -732,6 +781,8 @@ class MT4ReachEnv(DirectRLEnv):
                 + self.cfg.stage3_slow_weight * insertion_slow_reward
                 + self.cfg.stage3_time_preserve_weight * stage3_time_preserve
                 + self.cfg.stage_latch_weight * stage_latch_reward
+                + self.cfg.moving_pregrasp_reward_weight * moving_pregrasp_reward
+                + self.cfg.final_insertion_weight * final_insertion_reward
                 + self.cfg.stage4_center_improvement_weight
                 * center_improvement_reward
                 * (0.25 + 0.75 * center_shortest_path_score)
@@ -766,6 +817,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.near_terminal_reward = near_terminal_reward
         self.stage_latch_reward = stage_latch_reward
         self.progressive_stage_weight = progressive_stage_weight
+        self.moving_pregrasp_reward = moving_pregrasp_reward
+        self.final_insertion_reward = final_insertion_reward
         self.stage4_time_pressure = stage4_time_pressure
         return reward
 
@@ -812,6 +865,7 @@ class MT4ReachEnv(DirectRLEnv):
             & (self.insertion_lateral_error < self.cfg.touch_success_band)
             & (self.insertion_progress > self.cfg.stage3_insertion_start_progress)
         )
+        self._advance_moving_pregrasp(stage1_ready, hold_stability_reward)
         stage3_touch_ready = (
             stage3_ready
             & (self.insertion_progress > self.cfg.stage3_insertion_success_progress)
@@ -899,6 +953,16 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_progressive_stage_weight": getattr(
                 self, "progressive_stage_weight", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_moving_pregrasp_fraction": self.moving_pregrasp_fraction.mean(),
+            "mt4/moving_pregrasp_final_rate": (
+                self.moving_pregrasp_stage >= max(int(self.cfg.moving_pregrasp_step_count), 1)
+            ).float().mean(),
+            "mt4/mean_moving_pregrasp_reward": getattr(
+                self, "moving_pregrasp_reward", torch.zeros_like(self.distance)
+            ).mean(),
+            "mt4/mean_final_insertion_reward": getattr(
+                self, "final_insertion_reward", torch.zeros_like(self.distance)
+            ).mean(),
             "mt4/mean_pregrasp_line_error": self.pregrasp_line_error.mean(),
             "mt4/min_distance": self.distance.min(),
         }
@@ -935,6 +999,10 @@ class MT4ReachEnv(DirectRLEnv):
         self.near_terminal_reward[env_ids] = 0.0
         self.stage_latch_reward[env_ids] = 0.0
         self.progressive_stage_weight[env_ids] = 0.0
+        self.moving_pregrasp_stage[env_ids] = 0
+        self.moving_pregrasp_fraction[env_ids] = 0.0
+        self.moving_pregrasp_reward[env_ids] = 0.0
+        self.final_insertion_reward[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False
         self.stage1_latched[env_ids] = False
@@ -1030,12 +1098,44 @@ class MT4ReachEnv(DirectRLEnv):
 
         self.approach_dir[env_ids] = approach_dir
         self.pregrasp_entry_targets[env_ids] = pregrasp_entry_targets
+        self.pregrasp_start_targets[env_ids] = pregrasp_targets
+        self.pregrasp_goal_targets[env_ids] = targets - self.cfg.desired_touch_distance * approach_dir
+        if self.cfg.moving_pregrasp_enabled:
+            fraction = self.moving_pregrasp_fraction[env_ids].unsqueeze(-1)
+            pregrasp_targets = pregrasp_targets + fraction * (
+                self.pregrasp_goal_targets[env_ids] - pregrasp_targets
+            )
+            pregrasp_entry_targets = pregrasp_targets - self.cfg.pregrasp_entry_offset * approach_dir
+            self.pregrasp_entry_targets[env_ids] = pregrasp_entry_targets
         self.pregrasp_targets[env_ids] = pregrasp_targets
-        self.touch_targets[env_ids] = targets - self.cfg.desired_touch_distance * approach_dir
+        self.touch_targets[env_ids] = self.pregrasp_goal_targets[env_ids]
         desired_pregrasp_dir = approach_dir
         self.desired_pregrasp_dir[env_ids] = desired_pregrasp_dir
         self.desired_insertion_dir[env_ids] = approach_dir
         self.desired_gripper_dir[env_ids] = desired_pregrasp_dir
+
+    def _advance_moving_pregrasp(self, stage1_ready: torch.Tensor, hold_stability_reward: torch.Tensor):
+        if not self.cfg.moving_pregrasp_enabled:
+            return
+
+        step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
+        final_fraction = min(max(float(self.cfg.moving_pregrasp_final_fraction), 0.0), 0.95)
+        current_step_reached = (
+            stage1_ready
+            & (self.pregrasp_distance < self.cfg.moving_pregrasp_step_radius)
+            & (hold_stability_reward > self.cfg.pregrasp_hold_min_stability)
+        )
+        can_advance = current_step_reached & (self.moving_pregrasp_stage < step_count)
+        if not torch.any(can_advance):
+            return
+
+        env_ids = torch.nonzero(can_advance, as_tuple=False).squeeze(-1)
+        self.moving_pregrasp_stage[env_ids] += 1
+        self.moving_pregrasp_fraction[env_ids] = (
+            self.moving_pregrasp_stage[env_ids].float() / float(step_count)
+        ) * final_fraction
+        self._compute_target_geometry(env_ids)
+        self._update_target_markers()
 
     def _compute_intermediate_values(self):
         wrist_pos_w = self.robot.data.body_pos_w[:, self.ee_body_id, :]

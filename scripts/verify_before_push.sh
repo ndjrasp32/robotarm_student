@@ -16,6 +16,7 @@ echo "[INFO] Checking shell syntax..."
 bash -n scripts/train_128_1000.sh \
   scripts/plot_and_select_best.sh \
   scripts/play_best.sh \
+  scripts/play_guided_blue_checkpoint.sh \
   scripts/play_best_single.sh \
   scripts/play_best_demo.sh \
   scripts/kill_isaac_processes.sh \
@@ -34,6 +35,7 @@ bash -n scripts/train_128_1000.sh \
   scripts/train_stage4_weighted_balance_128_300.sh \
   scripts/train_stage4_near_terminal_128_300.sh \
   scripts/train_stage4_latched_progressive_128_300.sh \
+  scripts/train_stage4_guided_blue_128_300.sh \
   scripts/train_stage4_center_visual_low_exploration_16_120.sh \
   scripts/copy_latest_training_video_lowres.sh \
   scripts/verify_before_push.sh

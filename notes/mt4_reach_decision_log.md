@@ -651,3 +651,36 @@
   - latch 지표는 정상적으로 작동했고, 빨간 구체 접촉 벌점도 0으로 유지되었다.
   - 앞 단계 보존에는 도움이 되었지만, 추가 학습 후반의 최종 center 성공률은 오히려 약해졌다.
   - 다음 실험은 latch 보상 자체를 키우기보다, `stage3_latched` 이후에만 작동하는 final insertion 전용 보상을 분리해야 한다.
+
+## 2026-05-15 guided blue final insertion experiment
+
+- 선생님 의견:
+  - 파란 구체에 정렬된 상태로 도착하면, 파란 구체 위치를 빨간 구체 방향으로 조금씩 옮긴다.
+  - 이 과정을 두세 번 반복하면, 마지막 최종 스테이지는 더 가까운 상태에서 시작할 수 있다.
+- Codex 제안:
+  - 기존 task를 새로 만들지 않고, 파란 구체를 moving guide로 확장한다.
+  - 파란 구체는 빨간 중심까지 들어가지 않고 touch path의 70%까지만 3단계로 이동한다.
+  - 파란 guide 단계를 끝낸 뒤에만 final insertion reward를 켠다.
+- 적용:
+  - `MT4_REACH_MOVING_PREGRASP=1`
+  - `MT4_REACH_MOVING_PREGRASP_STEPS=3`
+  - `MT4_REACH_MOVING_PREGRASP_FINAL_FRACTION=0.70`
+  - `MT4_REACH_FINAL_INSERTION_WEIGHT=48.0`
+  - `mean_moving_pregrasp_fraction`, `moving_pregrasp_final_rate`, `mean_final_insertion_reward` 지표 추가
+- 실행 결과:
+  - run은 `2026-05-15_14-54-32`였다.
+  - strict success 기준 best는 `model_1600.pt`였다.
+  - 후반 guided-progress 관찰용 checkpoint는 `model_1899.pt`가 더 의미 있다.
+  - `model_1899.pt`:
+    - `success_rate=0.0009765625`
+    - `stage3_latched_rate=0.75146484375`
+    - `stage3_touch_ready_rate=0.682373046875`
+    - `stage4_push_ready_rate=0.451416015625`
+    - `mean_center_push_progress=0.6830252408981323`
+    - `moving_pregrasp_final_rate=0.548583984375`
+    - `mean_final_insertion_reward=0.04587549716234207`
+    - `mean_target_contact_penalty=0.0`
+- 평가:
+  - 선생님 아이디어는 효과가 있었다. 파란 구체를 따라 빨간 구체 쪽으로 들어가는 비율과 push ready 지표가 크게 올라갔다.
+  - 그러나 strict final center success는 아직 낮다.
+  - 다음에는 `0.045m` 성공 반경을 아주 약간 완화하거나, strict success와 guided-progress checkpoint 선택 기준을 분리해야 한다.
