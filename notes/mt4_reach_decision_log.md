@@ -486,3 +486,29 @@
   - `--video_interval=1`은 매 step마다 영상을 만들어 GUI 학습이 지나치게 느려지므로, 기본값을 `100000`으로 바꿔 첫 구간만 녹화하도록 조정했다.
   - 짧은 확인 영상은 `logs/videos/20260515_124112_stage4_center_low_exploration_videos.mp4`에 저장했다.
   - 중단된 확인용 run은 plot/select가 최신 run으로 오해하지 않도록 IsaacLab logs에서 삭제했다.
+
+## 2026-05-15 relaxed success curriculum
+
+- 선생님 의견:
+  - 최종 성공 기준을 약간 완화해서 일단 성공률을 만들고, 그 다음 조건을 엄격화하는 방향이 좋다.
+- Codex 제안:
+  - 현재 strict 실험은 `final_center_success_radius=0.035m`라 성공 신호가 너무 드물다.
+  - 이전 best의 `mean_distance`가 약 `0.052m`였으므로, 먼저 `0.055m`로 완화해 성공 신호를 만든다.
+  - 이후 `0.045m`, `0.040m`, `0.035m` 순서로 줄인다.
+- 적용:
+  - `scripts/train_stage4_relaxed_success_128_300.sh` 추가
+  - 기본 `MT4_REACH_FINAL_CENTER_RADIUS=0.055`
+  - 기존 strict/time-pressure 스크립트는 유지
+- 실행 결과:
+  - run은 `2026-05-15_13-49-56`, best checkpoint는 `model_1600.pt`였다.
+  - `success_rate=0.028564453125`
+  - `stage4_center_ready_rate=0.041259765625`
+  - `stage3_touch_ready_rate=0.13330078125`
+  - `stage2_pregrasp_ready_rate=0.135009765625`
+  - `mean_center_push_progress=0.5714872479438782`
+  - `mean_center_shortest_path_score=0.6061863899230957`
+  - `mean_target_contact_penalty=0.0`
+- 평가:
+  - 성공률을 만드는 데는 성공했다.
+  - 다만 완화 조건을 너무 쉽게 이용하면서 stage2/stage3 품질이 낮은 checkpoint가 선택되었다.
+  - 다음 실험은 `0.045m`로 줄이되, 성공률만 보지 않고 `stage3_touch_ready_rate`와 함께 선택해야 한다.
