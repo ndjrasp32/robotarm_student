@@ -26,6 +26,7 @@ FIELDS = [
     "checkpoint_iteration",
     "success_rate",
     "stage1_alignment_ready_rate",
+    "stage1_latched_rate",
     "pregrasp_entry_success_rate",
     "pregrasp_entry_ready_rate",
     "pregrasp_entry_reached_rate",
@@ -33,8 +34,10 @@ FIELDS = [
     "pregrasp_hold_ready_rate",
     "pregrasp_held_rate",
     "stage2_pregrasp_ready_rate",
+    "stage2_latched_rate",
     "stage2_alignment_ready_rate",
     "stage3_insertion_ready_rate",
+    "stage3_latched_rate",
     "stage3_touch_ready_rate",
     "stage4_center_ready_rate",
     "stage4_push_ready_rate",
@@ -60,6 +63,8 @@ FIELDS = [
     "mean_stage3_time_preserve",
     "mean_terminal_success_quality",
     "mean_near_terminal_reward",
+    "mean_stage_latch_reward",
+    "mean_progressive_stage_weight",
     "mean_pregrasp_line_error",
     "min_distance",
     "mean_reward",
@@ -208,6 +213,7 @@ def main() -> None:
         "checkpoint_iteration": summary.get("iteration", ""),
         "success_rate": summary.get("success_rate", ""),
         "stage1_alignment_ready_rate": summary.get("stage1_alignment_ready_rate", ""),
+        "stage1_latched_rate": summary.get("stage1_latched_rate", ""),
         "pregrasp_entry_success_rate": summary.get("pregrasp_entry_success_rate", ""),
         "pregrasp_entry_ready_rate": summary.get("pregrasp_entry_ready_rate", ""),
         "pregrasp_entry_reached_rate": summary.get("pregrasp_entry_reached_rate", ""),
@@ -215,8 +221,10 @@ def main() -> None:
         "pregrasp_hold_ready_rate": summary.get("pregrasp_hold_ready_rate", ""),
         "pregrasp_held_rate": summary.get("pregrasp_held_rate", ""),
         "stage2_pregrasp_ready_rate": summary.get("stage2_pregrasp_ready_rate", ""),
+        "stage2_latched_rate": summary.get("stage2_latched_rate", ""),
         "stage2_alignment_ready_rate": summary.get("stage2_alignment_ready_rate", ""),
         "stage3_insertion_ready_rate": summary.get("stage3_insertion_ready_rate", ""),
+        "stage3_latched_rate": summary.get("stage3_latched_rate", ""),
         "stage3_touch_ready_rate": summary.get("stage3_touch_ready_rate", ""),
         "stage4_center_ready_rate": summary.get("stage4_center_ready_rate", ""),
         "stage4_push_ready_rate": summary.get("stage4_push_ready_rate", ""),
@@ -242,6 +250,8 @@ def main() -> None:
         "mean_stage3_time_preserve": summary.get("mean_stage3_time_preserve", ""),
         "mean_terminal_success_quality": summary.get("mean_terminal_success_quality", ""),
         "mean_near_terminal_reward": summary.get("mean_near_terminal_reward", ""),
+        "mean_stage_latch_reward": summary.get("mean_stage_latch_reward", ""),
+        "mean_progressive_stage_weight": summary.get("mean_progressive_stage_weight", ""),
         "mean_pregrasp_line_error": summary.get("mean_pregrasp_line_error", ""),
         "min_distance": summary.get("min_distance", ""),
         "mean_reward": summary.get("mean_reward", ""),
@@ -283,6 +293,7 @@ def main() -> None:
                 "|---|---:|",
                 f"| success_rate | {row['success_rate']} |",
                 f"| stage1_alignment_ready_rate | {row['stage1_alignment_ready_rate']} |",
+                f"| stage1_latched_rate | {row['stage1_latched_rate']} |",
                 f"| pregrasp_entry_success_rate | {row['pregrasp_entry_success_rate']} |",
                 f"| pregrasp_entry_ready_rate | {row['pregrasp_entry_ready_rate']} |",
                 f"| pregrasp_entry_reached_rate | {row['pregrasp_entry_reached_rate']} |",
@@ -290,8 +301,10 @@ def main() -> None:
                 f"| pregrasp_hold_ready_rate | {row['pregrasp_hold_ready_rate']} |",
                 f"| pregrasp_held_rate | {row['pregrasp_held_rate']} |",
                 f"| stage2_pregrasp_ready_rate | {row['stage2_pregrasp_ready_rate']} |",
+                f"| stage2_latched_rate | {row['stage2_latched_rate']} |",
                 f"| stage2_alignment_ready_rate | {row['stage2_alignment_ready_rate']} |",
                 f"| stage3_insertion_ready_rate | {row['stage3_insertion_ready_rate']} |",
+                f"| stage3_latched_rate | {row['stage3_latched_rate']} |",
                 f"| stage3_touch_ready_rate | {row['stage3_touch_ready_rate']} |",
                 f"| stage4_center_ready_rate | {row['stage4_center_ready_rate']} |",
                 f"| stage4_push_ready_rate | {row['stage4_push_ready_rate']} |",
@@ -314,6 +327,8 @@ def main() -> None:
                 f"| mean_stage3_time_preserve | {row['mean_stage3_time_preserve']} |",
                 f"| mean_terminal_success_quality | {row['mean_terminal_success_quality']} |",
                 f"| mean_near_terminal_reward | {row['mean_near_terminal_reward']} |",
+                f"| mean_stage_latch_reward | {row['mean_stage_latch_reward']} |",
+                f"| mean_progressive_stage_weight | {row['mean_progressive_stage_weight']} |",
                 f"| mean_pregrasp_line_error | {row['mean_pregrasp_line_error']} |",
                 "",
                 "## Interpretation",
@@ -335,6 +350,7 @@ def main() -> None:
     print(" checkpoint    =", row["checkpoint"])
     print(" success_rate  =", row["success_rate"])
     print(" stage1_ready  =", row["stage1_alignment_ready_rate"])
+    print(" stage1_latch  =", row["stage1_latched_rate"])
     print(" entry_succ    =", row["pregrasp_entry_success_rate"])
     print(" entry_ready   =", row["pregrasp_entry_ready_rate"])
     print(" entry_reached =", row["pregrasp_entry_reached_rate"])
@@ -342,8 +358,10 @@ def main() -> None:
     print(" pregrasp_hold =", row["pregrasp_hold_ready_rate"])
     print(" pregrasp_held =", row["pregrasp_held_rate"])
     print(" stage2_pregrp =", row["stage2_pregrasp_ready_rate"])
+    print(" stage2_latch  =", row["stage2_latched_rate"])
     print(" stage2_ready  =", row["stage2_alignment_ready_rate"])
     print(" stage3_ready  =", row["stage3_insertion_ready_rate"])
+    print(" stage3_latch  =", row["stage3_latched_rate"])
     print(" stage3_touch  =", row["stage3_touch_ready_rate"])
     print(" stage4_center =", row["stage4_center_ready_rate"])
     print(" stage4_push   =", row["stage4_push_ready_rate"])
@@ -360,6 +378,8 @@ def main() -> None:
     print(" stage3_time   =", row["mean_stage3_time_preserve"])
     print(" term_quality  =", row["mean_terminal_success_quality"])
     print(" near_terminal =", row["mean_near_terminal_reward"])
+    print(" stage_latch   =", row["mean_stage_latch_reward"])
+    print(" progressive   =", row["mean_progressive_stage_weight"])
     print(" line_error    =", row["mean_pregrasp_line_error"])
 
 

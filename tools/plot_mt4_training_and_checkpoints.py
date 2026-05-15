@@ -103,6 +103,7 @@ def checkpoint_summary(run_dir, ea, tags):
 
     success_tag = find_tag(tags, ["mt4/success_rate", "success_rate", "success"])
     stage1_ready_tag = find_tag(tags, ["mt4/stage1_alignment_ready_rate", "stage1_alignment_ready_rate"])
+    stage1_latched_tag = find_tag(tags, ["mt4/stage1_latched_rate", "stage1_latched_rate"])
     pregrasp_entry_success_tag = find_tag(tags, ["mt4/pregrasp_entry_success_rate", "pregrasp_entry_success_rate"])
     pregrasp_entry_ready_tag = find_tag(tags, ["mt4/pregrasp_entry_ready_rate", "pregrasp_entry_ready_rate"])
     pregrasp_entry_reached_tag = find_tag(tags, ["mt4/pregrasp_entry_reached_rate", "pregrasp_entry_reached_rate"])
@@ -110,8 +111,10 @@ def checkpoint_summary(run_dir, ea, tags):
     pregrasp_hold_tag = find_tag(tags, ["mt4/pregrasp_hold_ready_rate", "pregrasp_hold_ready_rate"])
     pregrasp_held_tag = find_tag(tags, ["mt4/pregrasp_held_rate", "pregrasp_held_rate"])
     stage2_pregrasp_ready_tag = find_tag(tags, ["mt4/stage2_pregrasp_ready_rate", "stage2_pregrasp_ready_rate"])
+    stage2_latched_tag = find_tag(tags, ["mt4/stage2_latched_rate", "stage2_latched_rate"])
     stage2_ready_tag = find_tag(tags, ["mt4/stage2_alignment_ready_rate", "stage2_alignment_ready_rate"])
     stage3_ready_tag = find_tag(tags, ["mt4/stage3_insertion_ready_rate", "stage3_insertion_ready_rate"])
+    stage3_latched_tag = find_tag(tags, ["mt4/stage3_latched_rate", "stage3_latched_rate"])
     stage3_touch_ready_tag = find_tag(tags, ["mt4/stage3_touch_ready_rate", "stage3_touch_ready_rate"])
     stage4_center_ready_tag = find_tag(tags, ["mt4/stage4_center_ready_rate", "stage4_center_ready_rate"])
     stage4_push_ready_tag = find_tag(tags, ["mt4/stage4_push_ready_rate", "stage4_push_ready_rate"])
@@ -158,6 +161,12 @@ def checkpoint_summary(run_dir, ea, tags):
     near_terminal_reward_tag = find_tag(
         tags, ["mt4/mean_near_terminal_reward", "mean_near_terminal_reward"]
     )
+    stage_latch_reward_tag = find_tag(
+        tags, ["mt4/mean_stage_latch_reward", "mean_stage_latch_reward"]
+    )
+    progressive_stage_weight_tag = find_tag(
+        tags, ["mt4/mean_progressive_stage_weight", "mean_progressive_stage_weight"]
+    )
     pregrasp_line_error_tag = find_tag(tags, ["mt4/mean_pregrasp_line_error", "mean_pregrasp_line_error"])
     min_dist_tag = find_tag(tags, ["mt4/min_distance", "min_distance"])
     reward_tag = find_tag(tags, ["Train/mean_reward", "mean_reward", "reward"])
@@ -165,6 +174,7 @@ def checkpoint_summary(run_dir, ea, tags):
     print("[INFO] selected tags:")
     print(" success          =", success_tag)
     print(" stage1_ready     =", stage1_ready_tag)
+    print(" stage1_latched   =", stage1_latched_tag)
     print(" pregrasp_entry_s =", pregrasp_entry_success_tag)
     print(" pregrasp_entry_r =", pregrasp_entry_ready_tag)
     print(" pregrasp_entry_h =", pregrasp_entry_reached_tag)
@@ -172,8 +182,10 @@ def checkpoint_summary(run_dir, ea, tags):
     print(" pregrasp_hold    =", pregrasp_hold_tag)
     print(" pregrasp_held    =", pregrasp_held_tag)
     print(" stage2_pregrasp  =", stage2_pregrasp_ready_tag)
+    print(" stage2_latched   =", stage2_latched_tag)
     print(" stage2_ready_old =", stage2_ready_tag)
     print(" stage3_ready     =", stage3_ready_tag)
+    print(" stage3_latched   =", stage3_latched_tag)
     print(" stage3_touch     =", stage3_touch_ready_tag)
     print(" stage4_center    =", stage4_center_ready_tag)
     print(" stage4_push      =", stage4_push_ready_tag)
@@ -201,12 +213,15 @@ def checkpoint_summary(run_dir, ea, tags):
     print(" stage3_preserve  =", stage3_time_preserve_tag)
     print(" terminal_quality =", terminal_success_quality_tag)
     print(" near_terminal    =", near_terminal_reward_tag)
+    print(" stage_latch      =", stage_latch_reward_tag)
+    print(" progressive_w    =", progressive_stage_weight_tag)
     print(" line_error       =", pregrasp_line_error_tag)
     print(" min_dist         =", min_dist_tag)
     print(" reward           =", reward_tag)
 
     sx, sy = get_series(ea, success_tag)
     s1x, s1y = get_series(ea, stage1_ready_tag)
+    s1lx, s1ly = get_series(ea, stage1_latched_tag)
     pesx, pesy = get_series(ea, pregrasp_entry_success_tag)
     perx, pery = get_series(ea, pregrasp_entry_ready_tag)
     pehx, pehy = get_series(ea, pregrasp_entry_reached_tag)
@@ -214,8 +229,10 @@ def checkpoint_summary(run_dir, ea, tags):
     phx, phy = get_series(ea, pregrasp_hold_tag)
     phdx, phdy = get_series(ea, pregrasp_held_tag)
     s2px, s2py = get_series(ea, stage2_pregrasp_ready_tag)
+    s2lx, s2ly = get_series(ea, stage2_latched_tag)
     s2x, s2y = get_series(ea, stage2_ready_tag)
     s3x, s3y = get_series(ea, stage3_ready_tag)
+    s3lx, s3ly = get_series(ea, stage3_latched_tag)
     stx, sty = get_series(ea, stage3_touch_ready_tag)
     s4x, s4y = get_series(ea, stage4_center_ready_tag)
     s4px, s4py = get_series(ea, stage4_push_ready_tag)
@@ -243,6 +260,8 @@ def checkpoint_summary(run_dir, ea, tags):
     s3tpx, s3tpy = get_series(ea, stage3_time_preserve_tag)
     tsqx, tsqy = get_series(ea, terminal_success_quality_tag)
     ntrx, ntry = get_series(ea, near_terminal_reward_tag)
+    slrx, slry = get_series(ea, stage_latch_reward_tag)
+    pswx, pswy = get_series(ea, progressive_stage_weight_tag)
     plex, pley = get_series(ea, pregrasp_line_error_tag)
     mindx, mindy = get_series(ea, min_dist_tag)
     rx, ry = get_series(ea, reward_tag)
@@ -250,9 +269,11 @@ def checkpoint_summary(run_dir, ea, tags):
     # 자동 추정: scalar step이 iteration 번호인지 total step인지 판단
     max_ckpt_iter = max(parse_ckpt_iter(p) or 0 for p in ckpts)
     scalar_steps = (
-        sx + s1x + pesx + perx + pehx + psx + phx + phdx + s2px + s2x + s3x + stx + s4x + s4px
+        sx + s1x + s1lx + pesx + perx + pehx + psx + phx + phdx + s2px + s2lx + s2x + s3x
+        + s3lx + stx + s4x + s4px
         + pedx + pdx + gcx + tdx + tex + mdx + ilx + ax + pax + iax + tcx + pcpx + ipx + cppx
-        + bcppx + cpix + bcdx + cix + csix + cspx + stpx + s3tpx + tsqx + ntrx + plex + mindx + rx
+        + bcppx + cpix + bcdx + cix + csix + cspx + stpx + s3tpx + tsqx + ntrx + slrx + pswx
+        + plex + mindx + rx
     )
     max_scalar_step = max(scalar_steps) if scalar_steps else 0
 
@@ -280,6 +301,7 @@ def checkpoint_summary(run_dir, ea, tags):
 
         ss, sv = nearest_value(sx, sy, target_step)
         s1s, s1v = nearest_value(s1x, s1y, target_step)
+        s1ls, s1lv = nearest_value(s1lx, s1ly, target_step)
         pess, pesv = nearest_value(pesx, pesy, target_step)
         pers, perv = nearest_value(perx, pery, target_step)
         pehs, pehv = nearest_value(pehx, pehy, target_step)
@@ -287,8 +309,10 @@ def checkpoint_summary(run_dir, ea, tags):
         phs, phv = nearest_value(phx, phy, target_step)
         phds, phdv = nearest_value(phdx, phdy, target_step)
         s2ps, s2pv = nearest_value(s2px, s2py, target_step)
+        s2ls, s2lv = nearest_value(s2lx, s2ly, target_step)
         s2s, s2v = nearest_value(s2x, s2y, target_step)
         s3s, s3v = nearest_value(s3x, s3y, target_step)
+        s3ls, s3lv = nearest_value(s3lx, s3ly, target_step)
         sts, stv = nearest_value(stx, sty, target_step)
         s4s, s4v = nearest_value(s4x, s4y, target_step)
         s4ps, s4pv = nearest_value(s4px, s4py, target_step)
@@ -316,6 +340,8 @@ def checkpoint_summary(run_dir, ea, tags):
         s3tps, s3tpv = nearest_value(s3tpx, s3tpy, target_step)
         tsqs, tsqv = nearest_value(tsqx, tsqy, target_step)
         ntrs, ntrv = nearest_value(ntrx, ntry, target_step)
+        slrs, slrv = nearest_value(slrx, slry, target_step)
+        psws, pswv = nearest_value(pswx, pswy, target_step)
         ples, plev = nearest_value(plex, pley, target_step)
         mins, minv = nearest_value(mindx, mindy, target_step)
         rs, rv = nearest_value(rx, ry, target_step)
@@ -327,6 +353,7 @@ def checkpoint_summary(run_dir, ea, tags):
             "nearest_success_step": ss,
             "success_rate": sv,
             "stage1_alignment_ready_rate": s1v,
+            "stage1_latched_rate": s1lv,
             "pregrasp_entry_success_rate": pesv,
             "pregrasp_entry_ready_rate": perv,
             "pregrasp_entry_reached_rate": pehv,
@@ -334,8 +361,10 @@ def checkpoint_summary(run_dir, ea, tags):
             "pregrasp_hold_ready_rate": phv,
             "pregrasp_held_rate": phdv,
             "stage2_pregrasp_ready_rate": s2pv,
+            "stage2_latched_rate": s2lv,
             "stage2_alignment_ready_rate": s2v,
             "stage3_insertion_ready_rate": s3v,
+            "stage3_latched_rate": s3lv,
             "stage3_touch_ready_rate": stv,
             "stage4_center_ready_rate": s4v,
             "stage4_push_ready_rate": s4pv,
@@ -363,6 +392,8 @@ def checkpoint_summary(run_dir, ea, tags):
             "mean_stage3_time_preserve": s3tpv,
             "mean_terminal_success_quality": tsqv,
             "mean_near_terminal_reward": ntrv,
+            "mean_stage_latch_reward": slrv,
+            "mean_progressive_stage_weight": pswv,
             "mean_pregrasp_line_error": plev,
             "min_distance": minv,
             "mean_reward": rv,
@@ -430,7 +461,7 @@ def main():
     plot_group(ea, tags, "alignment", ["alignment"])
     plot_group(ea, tags, "touch_error", ["touch_error", "touch_target"])
     plot_group(ea, tags, "insertion_lateral_error", ["insertion_lateral_error"])
-    plot_group(ea, tags, "stage", ["stage1", "stage2", "stage3", "stage4", "stage4_push", "touch_ready", "insertion_progress", "center_push_progress", "best_center_push", "center_push_improvement", "target_center_shell", "center_shortest_path", "stage4_time", "stage3_time", "terminal_success", "near_terminal", "pregrasp_success", "pregrasp_hold", "pregrasp_held", "pregrasp_entry", "center_progress"])
+    plot_group(ea, tags, "stage", ["stage1", "stage2", "stage3", "latched", "stage4", "stage4_push", "touch_ready", "insertion_progress", "center_push_progress", "best_center_push", "center_push_improvement", "target_center_shell", "center_shortest_path", "stage4_time", "stage3_time", "terminal_success", "near_terminal", "stage_latch", "progressive_stage", "pregrasp_success", "pregrasp_hold", "pregrasp_held", "pregrasp_entry", "center_progress"])
     plot_group(ea, tags, "geometry", ["pregrasp_line_error", "pregrasp_entry_distance", "pregrasp_center_progress", "center_push_progress", "best_center_push", "center_push_improvement", "best_target_center", "target_center_improvement", "target_center_shell", "center_shortest_path"])
     plot_group(ea, tags, "safety", ["object_overlap", "target_contact", "body_target_clearance"])
     plot_group(ea, tags, "episode_length", ["episode_length", "length"])

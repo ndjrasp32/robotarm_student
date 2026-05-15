@@ -624,3 +624,30 @@
   - stage 유지 보상이 너무 크면 로봇팔이 앞 stage에 머무를 수 있다.
   - progressive weight는 작게 시작하고, success 시에는 기존처럼 terminal reward만 남겨야 한다.
   - 학생 설명에서는 "문제를 순서대로 잠금 해제하는 강화학습"으로 표현하면 이해하기 쉽다.
+
+## 2026-05-15 stage latch + progressive weighting result
+
+- branch:
+  - `experiment/stage-latch-progressive-weighting`
+- 선생님 의견:
+  - 앞 스테이지를 완수하면 다음 스테이지에 진입하고, 후반 스테이지 성공에 가까워질수록 확보한 stage 점수의 가중치를 강하게 준다.
+  - 이를 통해 뒤쪽 보상이 앞쪽 행동을 흐트러뜨리지 않도록 한다.
+- Codex 제안:
+  - stage 조건을 매 순간 다시 계산되는 ready 값과 episode 중 한 번 확보되면 유지되는 latched 값으로 분리한다.
+  - `stage_latch_reward`와 `progressive_stage_weight`를 작게 추가하고, 새 metric으로 효과를 관찰한다.
+- 실행 결과:
+  - run은 `2026-05-15_14-36-12`, best checkpoint는 `model_1600.pt`였다.
+  - `success_rate=0.013671875`
+  - `stage1_latched_rate=0.941162109375`
+  - `stage2_latched_rate=0.37158203125`
+  - `stage3_latched_rate=0.37158203125`
+  - `stage3_touch_ready_rate=0.3564453125`
+  - `stage4_center_ready_rate=0.013671875`
+  - `stage4_push_ready_rate=0.044189453125`
+  - `mean_stage_latch_reward=0.330735445022583`
+  - `mean_progressive_stage_weight=1.0618454217910767`
+  - `mean_target_contact_penalty=0.0`
+- 평가:
+  - latch 지표는 정상적으로 작동했고, 빨간 구체 접촉 벌점도 0으로 유지되었다.
+  - 앞 단계 보존에는 도움이 되었지만, 추가 학습 후반의 최종 center 성공률은 오히려 약해졌다.
+  - 다음 실험은 latch 보상 자체를 키우기보다, `stage3_latched` 이후에만 작동하는 final insertion 전용 보상을 분리해야 한다.

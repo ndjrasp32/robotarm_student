@@ -22,6 +22,7 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
 
         row["_success_rate"] = to_float(row.get("success_rate"))
         row["_stage1_alignment_ready_rate"] = to_float(row.get("stage1_alignment_ready_rate"))
+        row["_stage1_latched_rate"] = to_float(row.get("stage1_latched_rate"))
         row["_pregrasp_entry_success_rate"] = to_float(row.get("pregrasp_entry_success_rate"))
         row["_pregrasp_entry_ready_rate"] = to_float(row.get("pregrasp_entry_ready_rate"))
         row["_pregrasp_entry_reached_rate"] = to_float(row.get("pregrasp_entry_reached_rate"))
@@ -29,8 +30,10 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_pregrasp_hold_ready_rate"] = to_float(row.get("pregrasp_hold_ready_rate"))
         row["_pregrasp_held_rate"] = to_float(row.get("pregrasp_held_rate"))
         row["_stage2_pregrasp_ready_rate"] = to_float(row.get("stage2_pregrasp_ready_rate"))
+        row["_stage2_latched_rate"] = to_float(row.get("stage2_latched_rate"))
         row["_stage2_alignment_ready_rate"] = to_float(row.get("stage2_alignment_ready_rate"))
         row["_stage3_insertion_ready_rate"] = to_float(row.get("stage3_insertion_ready_rate"))
+        row["_stage3_latched_rate"] = to_float(row.get("stage3_latched_rate"))
         row["_stage3_touch_ready_rate"] = to_float(row.get("stage3_touch_ready_rate"))
         row["_stage4_center_ready_rate"] = to_float(row.get("stage4_center_ready_rate"))
         row["_stage4_push_ready_rate"] = to_float(row.get("stage4_push_ready_rate"))
@@ -55,6 +58,8 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_mean_stage3_time_preserve"] = to_float(row.get("mean_stage3_time_preserve"))
         row["_mean_terminal_success_quality"] = to_float(row.get("mean_terminal_success_quality"))
         row["_mean_near_terminal_reward"] = to_float(row.get("mean_near_terminal_reward"))
+        row["_mean_stage_latch_reward"] = to_float(row.get("mean_stage_latch_reward"))
+        row["_mean_progressive_stage_weight"] = to_float(row.get("mean_progressive_stage_weight"))
         row["_mean_pregrasp_line_error"] = to_float(row.get("mean_pregrasp_line_error"))
         row["_mean_reward"] = to_float(row.get("mean_reward"))
         row["_primary_distance"] = row["_mean_pregrasp_distance"]
@@ -96,6 +101,7 @@ else:
                 touch_error = r["_mean_touch_error"] or target_standoff_error
                 success = r["_success_rate"] or 0.0
                 stage1_ready = r["_stage1_alignment_ready_rate"] or r["_stage2_alignment_ready_rate"] or 0.0
+                stage1_latched = r["_stage1_latched_rate"] or 0.0
                 entry_success = r["_pregrasp_entry_success_rate"] or 0.0
                 entry_ready = r["_pregrasp_entry_ready_rate"] or 0.0
                 entry_reached = r["_pregrasp_entry_reached_rate"] or 0.0
@@ -103,7 +109,9 @@ else:
                 pregrasp_hold = r["_pregrasp_hold_ready_rate"] or 0.0
                 pregrasp_held = r["_pregrasp_held_rate"] or 0.0
                 stage2_ready = r["_stage2_pregrasp_ready_rate"] or 0.0
+                stage2_latched = r["_stage2_latched_rate"] or 0.0
                 stage3_ready = r["_stage3_insertion_ready_rate"] or 0.0
+                stage3_latched = r["_stage3_latched_rate"] or 0.0
                 stage3_touch_ready = r["_stage3_touch_ready_rate"] or 0.0
                 stage4_center_ready = r["_stage4_center_ready_rate"] or 0.0
                 stage4_push_ready = r["_stage4_push_ready_rate"] or 0.0
@@ -124,6 +132,8 @@ else:
                 stage3_time_preserve = r["_mean_stage3_time_preserve"] or 0.0
                 terminal_success_quality = r["_mean_terminal_success_quality"] or 0.0
                 near_terminal_reward = r["_mean_near_terminal_reward"] or 0.0
+                stage_latch_reward = r["_mean_stage_latch_reward"] or 0.0
+                progressive_stage_weight = r["_mean_progressive_stage_weight"] or 0.0
                 line_error = r["_mean_pregrasp_line_error"] or 0.0
                 reward = r["_mean_reward"] or 0.0
                 return (
@@ -133,6 +143,7 @@ else:
                     +0.05 * pregrasp_alignment
                     +0.08 * insertion_alignment
                     +0.25 * stage1_ready
+                    +0.10 * stage1_latched
                     +0.25 * entry_success
                     +0.20 * entry_ready
                     +0.20 * entry_reached
@@ -140,7 +151,9 @@ else:
                     +0.35 * pregrasp_hold
                     +0.45 * pregrasp_held
                     +0.55 * stage2_ready
+                    +0.15 * stage2_latched
                     +1.50 * stage3_ready
+                    +0.20 * stage3_latched
                     +2.50 * stage3_touch_ready
                     +5.00 * stage4_center_ready
                     +1.40 * stage4_push_ready
@@ -155,6 +168,8 @@ else:
                     +0.20 * stage3_time_preserve
                     +0.50 * terminal_success_quality
                     +0.40 * near_terminal_reward
+                    +0.20 * stage_latch_reward
+                    +0.05 * progressive_stage_weight
                     -0.05 * stage4_time_pressure
                     -0.50 * (best_center_distance if best_center_distance is not None else distance)
                     +10.0 * success
@@ -195,6 +210,7 @@ print("checkpoint    =", best.get("checkpoint"))
 print("iteration     =", best.get("iteration"))
 print("success_rate  =", best.get("success_rate"))
 print("stage1_ready  =", best.get("stage1_alignment_ready_rate"))
+print("stage1_latch  =", best.get("stage1_latched_rate"))
 print("entry_succ    =", best.get("pregrasp_entry_success_rate"))
 print("entry_ready   =", best.get("pregrasp_entry_ready_rate"))
 print("entry_reached =", best.get("pregrasp_entry_reached_rate"))
@@ -202,8 +218,10 @@ print("pregrasp_succ =", best.get("pregrasp_success_rate"))
 print("pregrasp_hold =", best.get("pregrasp_hold_ready_rate"))
 print("pregrasp_held =", best.get("pregrasp_held_rate"))
 print("stage2_pregrasp=", best.get("stage2_pregrasp_ready_rate"))
+print("stage2_latch  =", best.get("stage2_latched_rate"))
 print("stage2_ready  =", best.get("stage2_alignment_ready_rate"))
 print("stage3_ready  =", best.get("stage3_insertion_ready_rate"))
+print("stage3_latch  =", best.get("stage3_latched_rate"))
 print("stage3_touch  =", best.get("stage3_touch_ready_rate"))
 print("stage4_center =", best.get("stage4_center_ready_rate"))
 print("stage4_push   =", best.get("stage4_push_ready_rate"))
@@ -227,6 +245,8 @@ print("stage4_time  =", best.get("mean_stage4_time_pressure"))
 print("stage3_time  =", best.get("mean_stage3_time_preserve"))
 print("term_quality =", best.get("mean_terminal_success_quality"))
 print("near_terminal=", best.get("mean_near_terminal_reward"))
+print("stage_latch =", best.get("mean_stage_latch_reward"))
+print("progressive =", best.get("mean_progressive_stage_weight"))
 print("line_error   =", best.get("mean_pregrasp_line_error"))
 print("min_distance  =", best.get("min_distance"))
 print("mean_reward   =", best.get("mean_reward"))

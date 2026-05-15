@@ -33,6 +33,7 @@ bash -n scripts/train_128_1000.sh \
   scripts/train_stage4_time_pressure_visual_16_120.sh \
   scripts/train_stage4_weighted_balance_128_300.sh \
   scripts/train_stage4_near_terminal_128_300.sh \
+  scripts/train_stage4_latched_progressive_128_300.sh \
   scripts/train_stage4_center_visual_low_exploration_16_120.sh \
   scripts/copy_latest_training_video_lowres.sh \
   scripts/verify_before_push.sh
@@ -78,4 +79,9 @@ git status --short
 echo "[INFO] Git diff summary:"
 git diff --stat
 
-echo "[OK] Verification complete. Review git diff, commit, then push origin main."
+BRANCH="$(git branch --show-current)"
+if [[ -z "${BRANCH}" ]]; then
+  BRANCH="<current-branch>"
+fi
+
+echo "[OK] Verification complete. Review git diff, commit, then push origin ${BRANCH}."

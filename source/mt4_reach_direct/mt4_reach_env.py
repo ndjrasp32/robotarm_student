@@ -188,6 +188,8 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     terminal_success_quality_weight = 0.0
     near_terminal_weight = 0.0
     near_terminal_radius = 0.050
+    stage_latch_weight = 0.0
+    progressive_stage_weight = 0.0
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
     stage4_push_ready_progress = 0.60
@@ -278,9 +280,14 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage3_time_preserve = torch.zeros((self.num_envs,), device=self.device)
         self.terminal_success_quality = torch.zeros((self.num_envs,), device=self.device)
         self.near_terminal_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.stage_latch_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.progressive_stage_weight = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.pregrasp_held = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.stage1_latched = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.stage2_latched = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.stage3_latched = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.pregrasp_replay_states: dict[str, torch.Tensor] | None = self._load_pregrasp_replay_states()
 
         self._sample_targets(torch.arange(self.num_envs, device=self.device))
@@ -387,6 +394,12 @@ class MT4ReachEnv(DirectRLEnv):
             )
             cfg.near_terminal_radius = float(
                 os.environ.get("MT4_REACH_NEAR_TERMINAL_RADIUS", "0.050")
+            )
+            cfg.stage_latch_weight = float(
+                os.environ.get("MT4_REACH_STAGE_LATCH_WEIGHT", "0.0")
+            )
+            cfg.progressive_stage_weight = float(
+                os.environ.get("MT4_REACH_PROGRESSIVE_STAGE_WEIGHT", "0.0")
             )
             cfg.center_push_improvement_scale = float(
                 os.environ.get("MT4_REACH_CENTER_PUSH_IMPROVEMENT_SCALE", "0.012")
@@ -678,6 +691,21 @@ class MT4ReachEnv(DirectRLEnv):
             * insertion_alignment_reward
             * touch_ready_reward
         )
+        stage4_progress_factor = (
+            self.stage3_latched.float()
+            * center_push_progress_reward
+            * center_shortest_path_score
+        )
+        progressive_stage_weight = 1.0 + self.cfg.progressive_stage_weight * stage4_progress_factor
+        stage_latch_reward = (
+            0.20 * self.stage1_latched.float() * insertion_alignment_reward
+            + 0.30 * self.stage2_latched.float() * pregrasp_hold_reward
+            + 0.50
+            * self.stage3_latched.float()
+            * insertion_line_reward
+            * insertion_alignment_reward
+            * touch_ready_reward
+        ) * progressive_stage_weight
         pregrasp_bonus = pregrasp_success.float() * self.cfg.pregrasp_bonus_weight
         success_bonus = success.float() * self.cfg.success_bonus_weight
         success_reward = success_bonus + self.cfg.terminal_success_quality_weight * terminal_success_quality
@@ -703,6 +731,7 @@ class MT4ReachEnv(DirectRLEnv):
                 + self.cfg.stage3_depth_weight * touch_depth_reward
                 + self.cfg.stage3_slow_weight * insertion_slow_reward
                 + self.cfg.stage3_time_preserve_weight * stage3_time_preserve
+                + self.cfg.stage_latch_weight * stage_latch_reward
                 + self.cfg.stage4_center_improvement_weight
                 * center_improvement_reward
                 * (0.25 + 0.75 * center_shortest_path_score)
@@ -735,6 +764,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage3_time_preserve = stage3_time_preserve
         self.terminal_success_quality = terminal_success_quality
         self.near_terminal_reward = near_terminal_reward
+        self.stage_latch_reward = stage_latch_reward
+        self.progressive_stage_weight = progressive_stage_weight
         self.stage4_time_pressure = stage4_time_pressure
         return reward
 
@@ -774,6 +805,13 @@ class MT4ReachEnv(DirectRLEnv):
             & (self.insertion_lateral_error < self.cfg.touch_success_band)
             & (self.insertion_progress > self.cfg.stage3_insertion_start_progress)
         )
+        self.stage1_latched = self.stage1_latched | stage1_ready
+        self.stage2_latched = self.stage2_latched | (self.stage1_latched & self.pregrasp_held)
+        self.stage3_latched = self.stage3_latched | (
+            self.stage2_latched
+            & (self.insertion_lateral_error < self.cfg.touch_success_band)
+            & (self.insertion_progress > self.cfg.stage3_insertion_start_progress)
+        )
         stage3_touch_ready = (
             stage3_ready
             & (self.insertion_progress > self.cfg.stage3_insertion_success_progress)
@@ -804,6 +842,7 @@ class MT4ReachEnv(DirectRLEnv):
             ),
             "mt4/success_rate": success.float().mean(),
             "mt4/stage1_alignment_ready_rate": stage1_ready.float().mean(),
+            "mt4/stage1_latched_rate": self.stage1_latched.float().mean(),
             "mt4/pregrasp_entry_success_rate": pregrasp_entry_success.float().mean(),
             "mt4/pregrasp_entry_ready_rate": pregrasp_entry_ready.float().mean(),
             "mt4/pregrasp_entry_reached_rate": self.pregrasp_entry_reached.float().mean(),
@@ -811,8 +850,10 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/pregrasp_hold_ready_rate": pregrasp_hold_ready.float().mean(),
             "mt4/pregrasp_held_rate": self.pregrasp_held.float().mean(),
             "mt4/stage2_pregrasp_ready_rate": stage2_ready.float().mean(),
+            "mt4/stage2_latched_rate": self.stage2_latched.float().mean(),
             "mt4/stage2_alignment_ready_rate": stage1_ready.float().mean(),
             "mt4/stage3_insertion_ready_rate": stage3_ready.float().mean(),
+            "mt4/stage3_latched_rate": self.stage3_latched.float().mean(),
             "mt4/stage3_touch_ready_rate": stage3_touch_ready.float().mean(),
             "mt4/stage4_center_ready_rate": stage4_center_ready.float().mean(),
             "mt4/stage4_push_ready_rate": stage4_push_ready.float().mean(),
@@ -852,6 +893,12 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_near_terminal_reward": getattr(
                 self, "near_terminal_reward", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_stage_latch_reward": getattr(
+                self, "stage_latch_reward", torch.zeros_like(self.distance)
+            ).mean(),
+            "mt4/mean_progressive_stage_weight": getattr(
+                self, "progressive_stage_weight", torch.zeros_like(self.distance)
+            ).mean(),
             "mt4/mean_pregrasp_line_error": self.pregrasp_line_error.mean(),
             "mt4/min_distance": self.distance.min(),
         }
@@ -886,8 +933,13 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage3_time_preserve[env_ids] = 0.0
         self.terminal_success_quality[env_ids] = 0.0
         self.near_terminal_reward[env_ids] = 0.0
+        self.stage_latch_reward[env_ids] = 0.0
+        self.progressive_stage_weight[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False
+        self.stage1_latched[env_ids] = False
+        self.stage2_latched[env_ids] = False
+        self.stage3_latched[env_ids] = False
         self._sample_targets(env_ids)
         self._apply_pregrasp_replay_reset(env_ids)
 
