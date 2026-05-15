@@ -15,7 +15,8 @@
 ## Codex Proposal
 
 - 파란 구체 시각 반경을 `0.025 -> 0.016`으로 줄인다.
-- blue-center curriculum 기본값을 `steps=5`, `step_radius=0.018`, `hold_steps=8`로 바꾼다.
+- blue-center curriculum 기본값은 1차 재학습에서는 `steps=5`, `step_radius=0.035`, `hold_steps=4`로 둔다.
+- `step_radius=0.018`, `hold_steps=8`은 성공 사례가 충분히 생긴 뒤 조건을 엄격화할 때 사용한다.
 - 집게 중심점이 현재 파란 구체 중심 근처에 일정 프레임 유지될 때만 다음 파란 구체를 생성한다.
 - 새 지표를 추가한다:
   - `moving_pregrasp_step_ready_rate`: 현재 파란 구체 중심에 들어온 비율
@@ -26,6 +27,10 @@
 - 파란 구체가 한 번에 빨간 구체 중심으로 튀지 않고, 경로 안내점처럼 단계적으로 이동한다.
 - 한쪽 집게 다리가 아니라 집게 가운데 지점이 파란 구체 중심에 맞아야 다음 단계로 넘어간다.
 - 학습 그래프에서 `moving_pregrasp_final_rate`만 보는 것이 아니라, 각 step에서 제대로 멈추고 있는지 `moving_pregrasp_step_ready_rate`와 `mean_moving_pregrasp_hold_progress`를 함께 확인할 수 있다.
+
+## First Training Feedback
+
+초기 확인에서 `step_radius=0.018`, `hold_steps=8`은 너무 엄격했다. 접근/정렬 지표는 유지되었지만 `moving_pregrasp_step_ready_rate`와 `moving_pregrasp_final_rate`가 거의 0이라 파란 구체가 다음 단계로 진행되지 않았다. 그래서 첫 재학습 조건은 `0.035m + 4 frames`로 완화하고, 이후 성공률이 생기면 다시 엄격화한다.
 
 ## Next Test
 

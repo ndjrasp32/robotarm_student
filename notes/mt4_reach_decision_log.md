@@ -726,9 +726,41 @@
   - 다만 기존 `steps=3`, `step_radius=0.060`은 단계 간 거리보다 통과 반경이 커서, 파란 구체가 너무 빨리 다음 단계로 넘어갈 수 있었다.
 - 적용:
   - 파란 marker radius를 `0.025 -> 0.016`으로 줄였다.
-  - blue-center 기본값을 `steps=5`, `step_radius=0.018`, `hold_steps=8`로 조정했다.
+  - blue-center 기본값을 `steps=5`, `step_radius=0.035`, `hold_steps=4`로 조정했다.
   - 집게 중심점이 현재 파란 구체 중심 근처에 일정 프레임 머물러야 다음 파란 구체로 넘어가도록 `moving_pregrasp_hold_count`를 추가했다.
   - `moving_pregrasp_step_ready_rate`, `mean_moving_pregrasp_hold_progress` 지표를 추가했다.
+- 첫 학습 피드백:
+  - `step_radius=0.018`, `hold_steps=8`은 너무 엄격했다.
+  - 접근/정렬은 유지되었지만 `moving_pregrasp_step_ready_rate`와 `moving_pregrasp_final_rate`가 거의 0이라 파란 구체 안내가 시작되지 않았다.
+  - 먼저 `0.035m + 4 frames`로 성공 사례를 만들고, 이후 `0.018m + 8 frames`로 엄격화한다.
 - 기대:
   - 파란 구체가 사라지는 것이 아니라, 빨간 구체 중심까지 더 촘촘하게 재생성되는 안내점처럼 보일 것이다.
   - 한쪽 finger가 스치는 행동보다 집게 가운데를 맞추는 행동이 더 명확히 요구된다.
+
+## 2026-05-15 blue marker step gate training result
+
+- 실행:
+  - run은 `2026-05-15_15-31-41`이었다.
+  - best checkpoint는 `model_2100.pt`였다.
+  - 학습 조건은 `steps=5`, `step_radius=0.035`, `hold_steps=4`였다.
+- 선생님 관찰 반영:
+  - 기존 checkpoint play는 새 조건으로 학습된 것이 아니어서 움직임이 이상하게 보였다.
+  - 이번에는 같은 조건으로 재학습을 진행했다.
+- 결과:
+  - `success_rate=0.000244140625`
+  - `stage3_latched_rate=0.891845703125`
+  - `stage3_insertion_ready_rate=0.849609375`
+  - `stage4_center_ready_rate=0.000244140625`
+  - `moving_pregrasp_final_rate=0.01904296875`
+  - `moving_pregrasp_step_ready_rate=0.0068359375`
+  - `mean_moving_pregrasp_hold_progress=0.00469970703125`
+  - `mean_distance=0.06156041473150253`
+  - `mean_target_contact_penalty=0.0`
+- 중간 관찰:
+  - 학습 중간에는 `moving_pregrasp_final_rate`가 약 0.10까지 올라간 구간이 있었다.
+  - 그러나 checkpoint 저장 시점에는 그 행동이 안정적으로 보존되지 않았다.
+- 평가:
+  - 새 파란 guide gate는 학습 신호로 들어가기 시작했다.
+  - 하지만 아직 final center 성공률을 만들 만큼 강하지 않다.
+  - 다음 실험은 guide-following을 먼저 확실히 학습시키는 2단계 schedule이 적절하다.
+  - 예: `0.045m/2 frames/reward 24`로 성공 사례를 늘리고, 이후 `0.035m/4 frames`, 마지막에 `0.018m/8 frames`로 조인다.
