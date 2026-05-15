@@ -45,6 +45,8 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_mean_pregrasp_center_progress"] = to_float(row.get("mean_pregrasp_center_progress"))
         row["_mean_insertion_progress"] = to_float(row.get("mean_insertion_progress"))
         row["_mean_center_push_progress"] = to_float(row.get("mean_center_push_progress"))
+        row["_mean_best_center_push_progress"] = to_float(row.get("mean_best_center_push_progress"))
+        row["_mean_center_push_improvement"] = to_float(row.get("mean_center_push_improvement"))
         row["_mean_best_target_center_distance"] = to_float(row.get("mean_best_target_center_distance"))
         row["_mean_target_center_improvement"] = to_float(row.get("mean_target_center_improvement"))
         row["_mean_pregrasp_line_error"] = to_float(row.get("mean_pregrasp_line_error"))
@@ -106,6 +108,8 @@ else:
                 center_progress = r["_mean_pregrasp_center_progress"] or 0.0
                 insertion_progress = r["_mean_insertion_progress"] or 0.0
                 center_push_progress = r["_mean_center_push_progress"] or 0.0
+                best_center_push_progress = r["_mean_best_center_push_progress"] or center_push_progress
+                center_push_improvement = r["_mean_center_push_improvement"] or 0.0
                 best_center_distance = r["_mean_best_target_center_distance"]
                 target_center_improvement = r["_mean_target_center_improvement"] or 0.0
                 line_error = r["_mean_pregrasp_line_error"] or 0.0
@@ -131,6 +135,8 @@ else:
                     +0.20 * center_progress
                     +0.10 * insertion_progress
                     +0.35 * center_push_progress
+                    +0.45 * best_center_push_progress
+                    +0.30 * center_push_improvement
                     +0.40 * target_center_improvement
                     -0.50 * (best_center_distance if best_center_distance is not None else distance)
                     +10.0 * success
@@ -193,6 +199,8 @@ print("insert_align  =", best.get("mean_insertion_alignment"))
 print("contact_penalty=", best.get("mean_target_contact_penalty"))
 print("center_prog  =", best.get("mean_pregrasp_center_progress"))
 print("push_prog    =", best.get("mean_center_push_progress"))
+print("best_push    =", best.get("mean_best_center_push_progress"))
+print("push_impr    =", best.get("mean_center_push_improvement"))
 print("best_center  =", best.get("mean_best_target_center_distance"))
 print("center_impr  =", best.get("mean_target_center_improvement"))
 print("line_error   =", best.get("mean_pregrasp_line_error"))

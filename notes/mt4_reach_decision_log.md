@@ -365,6 +365,36 @@
   - 그러나 최종 중심 성공은 아직 나오지 않았다.
   - 보상이 강해지면서 후반에는 touch/alignment가 일부 흔들렸으므로, 다음에는 push 보상과 자세 유지 보상을 더 강하게 결합하거나 stage4 replay state를 더 정밀한 위치에서 다시 수집하는 것이 좋다.
 
+## 2026-05-15 stronger stage 4 push
+
+- 선생님 의견:
+  - 마지막 단계만 잘 잡으면 1차적으로는 충분히 의미 있다.
+  - 중심 근처에서 빨간 구체 쪽으로 더 확실히 밀어 넣는 행동이 필요하다.
+- Codex 제안:
+  - 단순히 push weight만 키우면 자세가 흔들릴 수 있다.
+  - 그래서 episode 중 이전보다 더 안쪽으로 들어갔을 때만 보상하는 `center_push_improvement`를 추가한다.
+  - replay reset에서는 시작 progress를 기준점으로 저장하고, 그 이후 더 들어간 만큼만 improvement로 본다.
+  - `center_push_progress > 0.5` 이후 구간에는 depth reward를 추가해 마지막 절반 구간을 더 강하게 학습시킨다.
+- 적용:
+  - `mean_best_center_push_progress` 추가
+  - `mean_center_push_improvement` 추가
+  - `stage4_center_push_improvement_weight`, `stage4_center_push_depth_weight` 추가
+  - `scripts/train_stage4_push_strong_replay_128_300.sh` 추가
+- 평가 예정:
+  - 다음 학습에서는 `stage4_push_ready_rate`보다 `mean_best_center_push_progress`와 `stage4_center_ready_rate`를 함께 본다.
+  - push 기준은 0.65로 높였기 때문에 push-ready rate가 낮아져도, 실제 중심 진입이 늘면 개선으로 본다.
+- 실행 결과:
+  - run은 `2026-05-15_13-03-24`, best checkpoint는 `model_1249.pt`였다.
+  - `mean_center_push_progress=0.6130448579788208`
+  - `mean_best_center_push_progress=0.6594560146331787`
+  - `stage4_push_ready_rate=0.264892578125`
+  - `stage4_center_ready_rate=0.000244140625`, `success_rate=0.000244140625`
+  - `mean_target_contact_penalty=0.0`
+- 평가:
+  - 이전보다 빨간 구체 중심 방향으로 더 깊이 들어가는 행동은 강화되었다.
+  - 하지만 마지막 성공률은 여전히 매우 낮다.
+  - 이제 병목은 push 자체보다, push 중 lateral error와 중심 거리 정밀도를 동시에 유지하는 것이다.
+
 ## 2026-05-15 stage 4 low-exploration visual run plan
 
 - 선생님 의견:

@@ -50,6 +50,8 @@ FIELDS = [
     "mean_pregrasp_center_progress",
     "mean_insertion_progress",
     "mean_center_push_progress",
+    "mean_best_center_push_progress",
+    "mean_center_push_improvement",
     "mean_best_target_center_distance",
     "mean_target_center_improvement",
     "mean_pregrasp_line_error",
@@ -224,6 +226,8 @@ def main() -> None:
         "mean_pregrasp_center_progress": summary.get("mean_pregrasp_center_progress", ""),
         "mean_insertion_progress": summary.get("mean_insertion_progress", ""),
         "mean_center_push_progress": summary.get("mean_center_push_progress", ""),
+        "mean_best_center_push_progress": summary.get("mean_best_center_push_progress", ""),
+        "mean_center_push_improvement": summary.get("mean_center_push_improvement", ""),
         "mean_best_target_center_distance": summary.get("mean_best_target_center_distance", ""),
         "mean_target_center_improvement": summary.get("mean_target_center_improvement", ""),
         "mean_pregrasp_line_error": summary.get("mean_pregrasp_line_error", ""),
@@ -288,6 +292,8 @@ def main() -> None:
                 f"| mean_target_contact_penalty | {row['mean_target_contact_penalty']} |",
                 f"| mean_pregrasp_center_progress | {row['mean_pregrasp_center_progress']} |",
                 f"| mean_center_push_progress | {row['mean_center_push_progress']} |",
+                f"| mean_best_center_push_progress | {row['mean_best_center_push_progress']} |",
+                f"| mean_center_push_improvement | {row['mean_center_push_improvement']} |",
                 f"| mean_best_target_center_distance | {row['mean_best_target_center_distance']} |",
                 f"| mean_target_center_improvement | {row['mean_target_center_improvement']} |",
                 f"| mean_pregrasp_line_error | {row['mean_pregrasp_line_error']} |",
@@ -328,6 +334,8 @@ def main() -> None:
     print(" touch_error   =", row["mean_touch_error"])
     print(" mean_distance =", row["mean_distance"])
     print(" push_progress =", row["mean_center_push_progress"])
+    print(" best_push     =", row["mean_best_center_push_progress"])
+    print(" push_improve  =", row["mean_center_push_improvement"])
     print(" line_error    =", row["mean_pregrasp_line_error"])
 
 
