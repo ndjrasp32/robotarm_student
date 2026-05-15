@@ -829,3 +829,27 @@
 - 다음 실험:
   - `scripts/train_stage4_blue_funnel_128_800.sh --seed 42`
   - 핵심 관찰 지표는 `blue_final_center_ready_rate`, `mean_moving_pregrasp_shell_improvement`, `mean_moving_pregrasp_exp_reward`, `success_rate`다.
+
+## 2026-05-15 blue shell/exponential 300-iteration result
+
+- 실행:
+  - run은 `2026-05-15_15-57-15`였다.
+  - `scripts/train_stage4_blue_center_128_300.sh --seed 42`로 300 iteration만 짧게 실행했다.
+  - best checkpoint는 `model_2100.pt`였다.
+- 결과:
+  - `success_rate=0.00146484375`
+  - `stage3_latched_rate=0.9013671875`
+  - `stage3_insertion_ready_rate=0.798583984375`
+  - `stage4_center_ready_rate=0.000732421875`
+  - `moving_pregrasp_final_rate=0.000732421875`
+  - `moving_pregrasp_step_ready_rate=0.019287109375`
+  - `mean_moving_pregrasp_exp_reward=0.07414236664772034`
+  - `mean_moving_pregrasp_shell_improvement=0.014892578125`
+  - `mean_best_moving_pregrasp_distance=0.15152236819267273`
+  - `mean_target_contact_penalty=0.0`
+- 평가:
+  - 새 shell/exponential reward는 정상적으로 들어갔다.
+  - 하지만 현재 `0.035m/4 frames` guide gate가 너무 엄격해 마지막 파란 guide까지 거의 진행하지 못했다.
+  - stage3 준비율은 높으므로, 문제는 전체 로봇팔 정렬이 아니라 moving blue guide의 단계 전환 조건이다.
+- 다음 제안:
+  - reward를 더 늘리기보다 `0.045m/2 frames`로 한 번 완화해 성공 사례를 먼저 만들고, 이후 다시 `0.035m/4 frames`로 조인다.
