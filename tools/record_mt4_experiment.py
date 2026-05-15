@@ -71,6 +71,9 @@ FIELDS = [
     "mean_moving_pregrasp_hold_progress",
     "mean_moving_pregrasp_reward",
     "mean_moving_pregrasp_funnel_reward",
+    "mean_moving_pregrasp_exp_reward",
+    "mean_moving_pregrasp_shell_improvement",
+    "mean_best_moving_pregrasp_distance",
     "mean_final_insertion_reward",
     "mean_pregrasp_line_error",
     "min_distance",
@@ -265,6 +268,9 @@ def main() -> None:
         "mean_moving_pregrasp_hold_progress": summary.get("mean_moving_pregrasp_hold_progress", ""),
         "mean_moving_pregrasp_reward": summary.get("mean_moving_pregrasp_reward", ""),
         "mean_moving_pregrasp_funnel_reward": summary.get("mean_moving_pregrasp_funnel_reward", ""),
+        "mean_moving_pregrasp_exp_reward": summary.get("mean_moving_pregrasp_exp_reward", ""),
+        "mean_moving_pregrasp_shell_improvement": summary.get("mean_moving_pregrasp_shell_improvement", ""),
+        "mean_best_moving_pregrasp_distance": summary.get("mean_best_moving_pregrasp_distance", ""),
         "mean_final_insertion_reward": summary.get("mean_final_insertion_reward", ""),
         "mean_pregrasp_line_error": summary.get("mean_pregrasp_line_error", ""),
         "min_distance": summary.get("min_distance", ""),
@@ -349,6 +355,9 @@ def main() -> None:
                 f"| mean_moving_pregrasp_hold_progress | {row['mean_moving_pregrasp_hold_progress']} |",
                 f"| mean_moving_pregrasp_reward | {row['mean_moving_pregrasp_reward']} |",
                 f"| mean_moving_pregrasp_funnel_reward | {row['mean_moving_pregrasp_funnel_reward']} |",
+                f"| mean_moving_pregrasp_exp_reward | {row['mean_moving_pregrasp_exp_reward']} |",
+                f"| mean_moving_pregrasp_shell_improvement | {row['mean_moving_pregrasp_shell_improvement']} |",
+                f"| mean_best_moving_pregrasp_distance | {row['mean_best_moving_pregrasp_distance']} |",
                 f"| mean_final_insertion_reward | {row['mean_final_insertion_reward']} |",
                 f"| mean_pregrasp_line_error | {row['mean_pregrasp_line_error']} |",
                 "",
@@ -407,6 +416,9 @@ def main() -> None:
     print(" moving_hold   =", row["mean_moving_pregrasp_hold_progress"])
     print(" moving_reward =", row["mean_moving_pregrasp_reward"])
     print(" moving_funnel =", row["mean_moving_pregrasp_funnel_reward"])
+    print(" moving_exp    =", row["mean_moving_pregrasp_exp_reward"])
+    print(" moving_shell  =", row["mean_moving_pregrasp_shell_improvement"])
+    print(" moving_best_d =", row["mean_best_moving_pregrasp_distance"])
     print(" final_insert  =", row["mean_final_insertion_reward"])
     print(" line_error    =", row["mean_pregrasp_line_error"])
 

@@ -19,6 +19,7 @@ bash -n scripts/train_128_1000.sh \
   scripts/play_guided_blue_checkpoint.sh \
   scripts/play_best_single.sh \
   scripts/play_best_demo.sh \
+  scripts/play_blue_funnel_demo.sh \
   scripts/kill_isaac_processes.sh \
   scripts/record_experiment_result.sh \
   scripts/tensorboard_mt4.sh \

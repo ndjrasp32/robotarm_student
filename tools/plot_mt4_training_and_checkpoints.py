@@ -185,6 +185,15 @@ def checkpoint_summary(run_dir, ea, tags):
     moving_pregrasp_funnel_reward_tag = find_tag(
         tags, ["mt4/mean_moving_pregrasp_funnel_reward", "mean_moving_pregrasp_funnel_reward"]
     )
+    moving_pregrasp_exp_reward_tag = find_tag(
+        tags, ["mt4/mean_moving_pregrasp_exp_reward", "mean_moving_pregrasp_exp_reward"]
+    )
+    moving_pregrasp_shell_improvement_tag = find_tag(
+        tags, ["mt4/mean_moving_pregrasp_shell_improvement", "mean_moving_pregrasp_shell_improvement"]
+    )
+    best_moving_pregrasp_dist_tag = find_tag(
+        tags, ["mt4/mean_best_moving_pregrasp_distance", "mean_best_moving_pregrasp_distance"]
+    )
     final_insertion_reward_tag = find_tag(
         tags, ["mt4/mean_final_insertion_reward", "mean_final_insertion_reward"]
     )
@@ -242,6 +251,9 @@ def checkpoint_summary(run_dir, ea, tags):
     print(" moving_hold_prog =", moving_pregrasp_hold_progress_tag)
     print(" moving_reward    =", moving_pregrasp_reward_tag)
     print(" moving_funnel    =", moving_pregrasp_funnel_reward_tag)
+    print(" moving_exp       =", moving_pregrasp_exp_reward_tag)
+    print(" moving_shell     =", moving_pregrasp_shell_improvement_tag)
+    print(" moving_best_dist =", best_moving_pregrasp_dist_tag)
     print(" final_insert_r   =", final_insertion_reward_tag)
     print(" line_error       =", pregrasp_line_error_tag)
     print(" min_dist         =", min_dist_tag)
@@ -296,6 +308,9 @@ def checkpoint_summary(run_dir, ea, tags):
     mphx, mphy = get_series(ea, moving_pregrasp_hold_progress_tag)
     mprx, mpry = get_series(ea, moving_pregrasp_reward_tag)
     mpfunx, mpfuny = get_series(ea, moving_pregrasp_funnel_reward_tag)
+    mpexpx, mpexy = get_series(ea, moving_pregrasp_exp_reward_tag)
+    mpsix, mpsiy = get_series(ea, moving_pregrasp_shell_improvement_tag)
+    mbpdx, mbpdy = get_series(ea, best_moving_pregrasp_dist_tag)
     firx, firy = get_series(ea, final_insertion_reward_tag)
     plex, pley = get_series(ea, pregrasp_line_error_tag)
     mindx, mindy = get_series(ea, min_dist_tag)
@@ -308,7 +323,8 @@ def checkpoint_summary(run_dir, ea, tags):
         + s3lx + stx + s4x + s4px
         + pedx + pdx + gcx + tdx + tex + mdx + ilx + ax + pax + iax + tcx + pcpx + ipx + cppx
         + bcppx + cpix + bcdx + cix + csix + cspx + stpx + s3tpx + tsqx + ntrx + slrx + pswx
-        + mpfx + mpfrx + mpsrx + mphx + mprx + mpfunx + firx + plex + mindx + rx
+        + mpfx + mpfrx + mpsrx + mphx + mprx + mpfunx + mpexpx + mpsix + mbpdx
+        + firx + plex + mindx + rx
     )
     max_scalar_step = max(scalar_steps) if scalar_steps else 0
 
@@ -383,6 +399,9 @@ def checkpoint_summary(run_dir, ea, tags):
         mphs, mphv = nearest_value(mphx, mphy, target_step)
         mprs, mprv = nearest_value(mprx, mpry, target_step)
         mpfuns, mpfunv = nearest_value(mpfunx, mpfuny, target_step)
+        mpexps, mpexpv = nearest_value(mpexpx, mpexy, target_step)
+        mpsis, mpsiv = nearest_value(mpsix, mpsiy, target_step)
+        mbpds, mbpdv = nearest_value(mbpdx, mbpdy, target_step)
         firs, firv = nearest_value(firx, firy, target_step)
         ples, plev = nearest_value(plex, pley, target_step)
         mins, minv = nearest_value(mindx, mindy, target_step)
@@ -442,6 +461,9 @@ def checkpoint_summary(run_dir, ea, tags):
             "mean_moving_pregrasp_hold_progress": mphv,
             "mean_moving_pregrasp_reward": mprv,
             "mean_moving_pregrasp_funnel_reward": mpfunv,
+            "mean_moving_pregrasp_exp_reward": mpexpv,
+            "mean_moving_pregrasp_shell_improvement": mpsiv,
+            "mean_best_moving_pregrasp_distance": mbpdv,
             "mean_final_insertion_reward": firv,
             "mean_pregrasp_line_error": plev,
             "min_distance": minv,

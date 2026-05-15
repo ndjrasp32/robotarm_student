@@ -809,3 +809,23 @@
   - 이번 실험은 "파란 guide를 따라 접근하는 것"은 성공했다.
   - 다음 문제는 "guide 끝에서 빨간 구체 중심이 집게 사이에 들어가도록 final insertion을 따로 학습시키는 것"이다.
   - 교육적으로는 좋은 실패 사례다. 복잡한 로봇팔 강화학습에서 중간 목표를 잘 만들면 행동 일부는 빠르게 좋아지지만, 마지막 성공 조건은 별도 보상/커리큘럼이 필요하다는 점을 보여준다.
+
+## 2026-05-15 blue shell/exponential reward refinement
+
+- 선생님 의견:
+  - 마지막 파란 구체가 빨간 구체 중심과 같다면, 그 지점에 집게 중심이 들어갔을 때 성공으로 봐야 한다.
+  - 부채꼴 보상에서 같은 거리권 보상을 계속 받는 대신, 같은 거리권 보상은 한 번만 받고 더 가까운 거리권으로 들어갈 때 다음 보상을 받는 구조가 좋겠다.
+  - 가까워질수록 선형이 아니라 지수적으로 보상이 커지면 더 자연스럽게 중심으로 유도할 수 있다.
+  - 학습된 checkpoint를 시연용으로 바로 보여주는 스크립트도 필요하다.
+- Codex 진단:
+  - `moving_pregrasp_final_rate`는 마지막 파란 marker 단계까지 진행됐다는 뜻이지, 현재 집게 중심이 마지막 파란 marker 중심에 들어갔다는 뜻은 아니었다.
+  - 그래서 마지막 파란 marker가 빨간 중심에 있는 상태를 별도 지표 `blue_final_center_ready_rate`로 분리했다.
+- 적용:
+  - `goal=center`에서 `blue_final_center_ready_rate`가 참이면 성공 판정에 포함했다.
+  - 파란 guide funnel reward에 exponential center reward를 추가했다.
+  - 파란 guide funnel reward에 one-shot distance shell reward를 추가했다.
+  - 파란 marker가 다음 단계로 이동할 때 shell 기록을 초기화하도록 했다.
+  - 시연용 `scripts/play_blue_funnel_demo.sh`를 추가했다.
+- 다음 실험:
+  - `scripts/train_stage4_blue_funnel_128_800.sh --seed 42`
+  - 핵심 관찰 지표는 `blue_final_center_ready_rate`, `mean_moving_pregrasp_shell_improvement`, `mean_moving_pregrasp_exp_reward`, `success_rate`다.

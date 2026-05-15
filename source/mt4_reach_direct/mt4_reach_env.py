@@ -201,6 +201,10 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     moving_pregrasp_funnel_depth = 0.090
     moving_pregrasp_funnel_min_radius = 0.020
     moving_pregrasp_funnel_max_radius = 0.070
+    moving_pregrasp_exp_weight = 0.30
+    moving_pregrasp_shell_weight = 0.25
+    moving_pregrasp_shell_size = 0.005
+    moving_pregrasp_exp_scale = 0.035
     final_insertion_weight = 0.0
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
@@ -302,6 +306,10 @@ class MT4ReachEnv(DirectRLEnv):
         self.moving_pregrasp_step_ready = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.moving_pregrasp_reward = torch.zeros((self.num_envs,), device=self.device)
         self.moving_pregrasp_funnel_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.moving_pregrasp_exp_reward = torch.zeros((self.num_envs,), device=self.device)
+        self.moving_pregrasp_shell_improvement = torch.zeros((self.num_envs,), device=self.device)
+        self.best_moving_pregrasp_distance = torch.full((self.num_envs,), 10.0, device=self.device)
+        self.best_moving_pregrasp_shell = torch.full((self.num_envs,), 999.0, device=self.device)
         self.final_insertion_reward = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -463,6 +471,18 @@ class MT4ReachEnv(DirectRLEnv):
             )
             cfg.moving_pregrasp_funnel_max_radius = float(
                 os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_MAX_RADIUS", "0.070")
+            )
+            cfg.moving_pregrasp_exp_weight = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_EXP_WEIGHT", "0.30")
+            )
+            cfg.moving_pregrasp_shell_weight = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_SHELL_WEIGHT", "0.25")
+            )
+            cfg.moving_pregrasp_shell_size = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_SHELL_SIZE", "0.005")
+            )
+            cfg.moving_pregrasp_exp_scale = float(
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_EXP_SCALE", "0.035")
             )
             cfg.final_insertion_weight = float(
                 os.environ.get("MT4_REACH_FINAL_INSERTION_WEIGHT", "0.0")
@@ -710,14 +730,23 @@ class MT4ReachEnv(DirectRLEnv):
             torch.maximum(self.best_center_push_progress, self.center_push_progress),
             self.best_center_push_progress,
         )
+        moving_pregrasp_step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
         final_center_ready = (
             stage3_ready
             & (self.distance < self.cfg.final_center_success_radius)
             & (self.body_target_clearance_error <= 1e-4)
         )
-        success = (
-            final_center_ready
-        )
+        if self.cfg.moving_pregrasp_enabled and self.cfg.moving_pregrasp_goal_mode == "center":
+            blue_final_center_ready = (
+                (self.moving_pregrasp_stage >= moving_pregrasp_step_count)
+                & (self.pregrasp_distance < self.cfg.final_center_success_radius)
+                & (self.insertion_alignment > self.cfg.insertion_alignment_success)
+                & (self.insertion_lateral_error < self.cfg.touch_success_band)
+                & (self.body_target_clearance_error <= 1e-4)
+            )
+        else:
+            blue_final_center_ready = torch.zeros_like(final_center_ready, dtype=torch.bool)
+        success = final_center_ready | blue_final_center_ready
         final_center_precision = torch.clamp(
             1.0 - self.distance / max(float(self.cfg.final_center_success_radius), 1e-6),
             min=0.0,
@@ -772,7 +801,6 @@ class MT4ReachEnv(DirectRLEnv):
             * insertion_alignment_reward
             * touch_ready_reward
         ) * progressive_stage_weight
-        moving_pregrasp_step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
         moving_pregrasp_stage_progress = self.moving_pregrasp_stage.float() / float(moving_pregrasp_step_count)
         moving_pregrasp_reward = (
             moving_pregrasp_stage_progress
@@ -794,12 +822,44 @@ class MT4ReachEnv(DirectRLEnv):
         )
         blue_depth_reward = torch.clamp(1.0 - blue_axis_clamped / funnel_depth, min=0.0, max=1.0)
         blue_front_gate = ((blue_axis >= -0.010) & (blue_axis <= funnel_depth)).float()
+        blue_exp_scale = max(float(self.cfg.moving_pregrasp_exp_scale), 1e-6)
+        blue_exp_reward = torch.exp(-torch.square(self.pregrasp_distance / blue_exp_scale))
+        blue_shell = torch.floor(
+            self.pregrasp_distance / max(float(self.cfg.moving_pregrasp_shell_size), 1e-6)
+        )
+        blue_shell_initialized = self.best_moving_pregrasp_shell < 998.0
+        blue_shell_improvement = torch.where(
+            self.stage2_latched & blue_shell_initialized,
+            torch.clamp(self.best_moving_pregrasp_shell - blue_shell, min=0.0),
+            torch.zeros_like(blue_shell),
+        )
+        self.moving_pregrasp_shell_improvement = blue_shell_improvement
+        blue_shell_reward = torch.clamp(blue_shell_improvement, min=0.0, max=4.0) / 4.0
+        self.best_moving_pregrasp_distance = torch.where(
+            self.stage2_latched,
+            torch.minimum(self.best_moving_pregrasp_distance, self.pregrasp_distance),
+            self.best_moving_pregrasp_distance,
+        )
+        self.best_moving_pregrasp_shell = torch.where(
+            self.stage2_latched,
+            torch.minimum(self.best_moving_pregrasp_shell, blue_shell),
+            self.best_moving_pregrasp_shell,
+        )
+        blue_base_weight = max(
+            0.0,
+            1.0 - float(self.cfg.moving_pregrasp_exp_weight) - float(self.cfg.moving_pregrasp_shell_weight),
+        )
+        self.moving_pregrasp_exp_reward = blue_exp_reward
         moving_pregrasp_funnel_reward = (
             self.stage2_latched.float()
             * blue_front_gate
             * insertion_alignment_reward
             * (0.50 + 0.50 * center_shortest_path_score)
-            * (0.60 * blue_lateral_reward + 0.40 * blue_depth_reward)
+            * (
+                blue_base_weight * (0.60 * blue_lateral_reward + 0.40 * blue_depth_reward)
+                + float(self.cfg.moving_pregrasp_exp_weight) * blue_exp_reward
+                + float(self.cfg.moving_pregrasp_shell_weight) * blue_shell_reward
+            )
         )
         final_insertion_gate = self.stage3_latched.float()
         if self.cfg.moving_pregrasp_enabled:
@@ -925,6 +985,18 @@ class MT4ReachEnv(DirectRLEnv):
             & (self.insertion_progress > self.cfg.stage3_insertion_start_progress)
         )
         self._advance_moving_pregrasp(stage1_ready, hold_stability_reward)
+        moving_pregrasp_step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
+        if self.cfg.moving_pregrasp_enabled and self.cfg.moving_pregrasp_goal_mode == "center":
+            blue_final_center_ready = (
+                (self.moving_pregrasp_stage >= moving_pregrasp_step_count)
+                & (self.pregrasp_distance < self.cfg.final_center_success_radius)
+                & (self.insertion_alignment > self.cfg.insertion_alignment_success)
+                & (self.insertion_lateral_error < self.cfg.touch_success_band)
+                & (self.body_target_clearance_error <= 1e-4)
+            )
+        else:
+            blue_final_center_ready = torch.zeros_like(success, dtype=torch.bool)
+        success = success | blue_final_center_ready
         stage3_touch_ready = (
             stage3_ready
             & (self.insertion_progress > self.cfg.stage3_insertion_success_progress)
@@ -969,6 +1041,7 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/stage3_latched_rate": self.stage3_latched.float().mean(),
             "mt4/stage3_touch_ready_rate": stage3_touch_ready.float().mean(),
             "mt4/stage4_center_ready_rate": stage4_center_ready.float().mean(),
+            "mt4/blue_final_center_ready_rate": blue_final_center_ready.float().mean(),
             "mt4/stage4_push_ready_rate": stage4_push_ready.float().mean(),
             "mt4/mean_distance": self.distance.mean(),
             "mt4/mean_pregrasp_entry_distance": self.pregrasp_entry_distance.mean(),
@@ -1029,6 +1102,16 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_moving_pregrasp_funnel_reward": getattr(
                 self, "moving_pregrasp_funnel_reward", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_moving_pregrasp_exp_reward": getattr(
+                self, "moving_pregrasp_exp_reward", torch.zeros_like(self.distance)
+            ).mean(),
+            "mt4/mean_moving_pregrasp_shell_improvement": getattr(
+                self, "moving_pregrasp_shell_improvement", torch.zeros_like(self.distance)
+            ).mean(),
+            "mt4/mean_best_moving_pregrasp_distance": torch.clamp(
+                getattr(self, "best_moving_pregrasp_distance", torch.zeros_like(self.distance)),
+                max=1.0,
+            ).mean(),
             "mt4/mean_final_insertion_reward": getattr(
                 self, "final_insertion_reward", torch.zeros_like(self.distance)
             ).mean(),
@@ -1074,6 +1157,10 @@ class MT4ReachEnv(DirectRLEnv):
         self.moving_pregrasp_step_ready[env_ids] = False
         self.moving_pregrasp_reward[env_ids] = 0.0
         self.moving_pregrasp_funnel_reward[env_ids] = 0.0
+        self.moving_pregrasp_exp_reward[env_ids] = 0.0
+        self.moving_pregrasp_shell_improvement[env_ids] = 0.0
+        self.best_moving_pregrasp_distance[env_ids] = 10.0
+        self.best_moving_pregrasp_shell[env_ids] = 999.0
         self.final_insertion_reward[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False
@@ -1219,6 +1306,9 @@ class MT4ReachEnv(DirectRLEnv):
         self.moving_pregrasp_stage[env_ids] += 1
         self.moving_pregrasp_hold_count[env_ids] = 0
         self.moving_pregrasp_step_ready[env_ids] = False
+        self.best_moving_pregrasp_distance[env_ids] = 10.0
+        self.best_moving_pregrasp_shell[env_ids] = 999.0
+        self.moving_pregrasp_shell_improvement[env_ids] = 0.0
         self.moving_pregrasp_fraction[env_ids] = (
             self.moving_pregrasp_stage[env_ids].float() / float(step_count)
         ) * final_fraction
@@ -1310,6 +1400,16 @@ class MT4ReachEnv(DirectRLEnv):
                 & (self.distance < self.cfg.final_center_success_radius)
                 & (self.body_target_clearance_error <= 1e-4)
             )
+            if self.cfg.moving_pregrasp_enabled and self.cfg.moving_pregrasp_goal_mode == "center":
+                step_count = max(int(self.cfg.moving_pregrasp_step_count), 1)
+                blue_final_center_ready = (
+                    (self.moving_pregrasp_stage >= step_count)
+                    & (self.pregrasp_distance < self.cfg.final_center_success_radius)
+                    & (self.insertion_alignment > self.cfg.insertion_alignment_success)
+                    & (self.insertion_lateral_error < self.cfg.touch_success_band)
+                    & (self.body_target_clearance_error <= 1e-4)
+                )
+                success = success | blue_final_center_ready
             success_pos_w = target_pos_w.clone()
             success_pos_w[~success, 2] = -10.0
             self.success_markers.visualize(success_pos_w)
