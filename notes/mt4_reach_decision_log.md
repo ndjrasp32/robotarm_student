@@ -538,3 +538,36 @@
   - `0.055m`: 성공률은 높지만 stage3가 약하다.
   - `0.045m`: 성공률은 남아 있고 stage3 품질도 더 낫다.
   - 다음에는 stage3 보상과 stage4 보상/시간 벌점을 단계별로 분리하는 실험이 타당하다.
+
+## 2026-05-15 stage weighted balance experiment
+
+- 선생님 의견:
+  - 뒤쪽 결과가 앞쪽 결과에 영향을 미치면 전체 틀이 흐트러질 수 있다.
+  - 앞쪽 결과는 유지하고 시간이 흐르면 가중치를 조금 더 주는 방식을 고려한다.
+  - 너무 크면 최종 성공을 피하고 시간을 끌 수 있으니 주의한다.
+  - 최종 성공 보상은 조금 키우되, 최단거리 루트 자체를 망치지 않아야 한다.
+  - 최종 성공했을 때만 마지막 stage 품질 가중치를 주는 방법도 가능하다.
+- Codex 제안:
+  - `stage3_time_preserve`를 작게 추가해 stage3 정렬/접촉 품질을 시간이 지나도 유지하게 한다.
+  - `stage4_time_penalty`도 함께 올려 시간을 끄는 행동은 손해가 되게 한다.
+  - 성공 step에서는 terminal success bonus와 `terminal_success_quality`만 준다.
+  - terminal quality는 성공했을 때만 적용해 실패 step의 stage4 보상이 앞 단계를 과하게 흔들지 않게 한다.
+- 적용:
+  - `stage3_time_preserve_weight` 추가
+  - `terminal_success_quality_weight` 추가
+  - `MT4_REACH_SUCCESS_BONUS` 환경변수 추가
+  - `mean_stage3_time_preserve`, `mean_terminal_success_quality` 지표 추가
+  - `scripts/train_stage4_weighted_balance_128_300.sh` 추가
+- 실행 결과:
+  - run은 `2026-05-15_14-08-19`, best checkpoint는 `model_1600.pt`였다.
+  - `success_rate=0.01318359375`
+  - `stage4_center_ready_rate=0.01318359375`
+  - `stage4_push_ready_rate=0.05078125`
+  - `stage3_touch_ready_rate=0.37158203125`
+  - `stage2_pregrasp_ready_rate=0.38134765625`
+  - `mean_stage3_time_preserve=0.07407005876302719`
+  - `mean_terminal_success_quality=0.0`
+- 평가:
+  - 이전 `0.045m` 실험과 비교해 성공률은 거의 유지되고 stage3 touch는 소폭 개선되었다.
+  - 학습 후반 stage3는 더 안정되었지만 final success는 다시 낮아졌다.
+  - 따라서 앞 단계 보존 가중치는 방향이 맞지만, 마지막 중심 진입을 직접 강화하는 보상이 더 필요하다.

@@ -57,6 +57,8 @@ FIELDS = [
     "mean_target_center_shell_improvement",
     "mean_center_shortest_path_score",
     "mean_stage4_time_pressure",
+    "mean_stage3_time_preserve",
+    "mean_terminal_success_quality",
     "mean_pregrasp_line_error",
     "min_distance",
     "mean_reward",
@@ -236,6 +238,8 @@ def main() -> None:
         "mean_target_center_shell_improvement": summary.get("mean_target_center_shell_improvement", ""),
         "mean_center_shortest_path_score": summary.get("mean_center_shortest_path_score", ""),
         "mean_stage4_time_pressure": summary.get("mean_stage4_time_pressure", ""),
+        "mean_stage3_time_preserve": summary.get("mean_stage3_time_preserve", ""),
+        "mean_terminal_success_quality": summary.get("mean_terminal_success_quality", ""),
         "mean_pregrasp_line_error": summary.get("mean_pregrasp_line_error", ""),
         "min_distance": summary.get("min_distance", ""),
         "mean_reward": summary.get("mean_reward", ""),
@@ -305,6 +309,8 @@ def main() -> None:
                 f"| mean_target_center_shell_improvement | {row['mean_target_center_shell_improvement']} |",
                 f"| mean_center_shortest_path_score | {row['mean_center_shortest_path_score']} |",
                 f"| mean_stage4_time_pressure | {row['mean_stage4_time_pressure']} |",
+                f"| mean_stage3_time_preserve | {row['mean_stage3_time_preserve']} |",
+                f"| mean_terminal_success_quality | {row['mean_terminal_success_quality']} |",
                 f"| mean_pregrasp_line_error | {row['mean_pregrasp_line_error']} |",
                 "",
                 "## Interpretation",
@@ -348,6 +354,8 @@ def main() -> None:
     print(" shell_improve =", row["mean_target_center_shell_improvement"])
     print(" shortest_path =", row["mean_center_shortest_path_score"])
     print(" stage4_time   =", row["mean_stage4_time_pressure"])
+    print(" stage3_time   =", row["mean_stage3_time_preserve"])
+    print(" term_quality  =", row["mean_terminal_success_quality"])
     print(" line_error    =", row["mean_pregrasp_line_error"])
 
 

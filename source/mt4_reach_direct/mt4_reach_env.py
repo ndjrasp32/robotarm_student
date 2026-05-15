@@ -184,6 +184,8 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     stage4_center_push_depth_weight = 8.0
     stage4_shortest_path_weight = 18.0
     stage4_distance_shell_weight = 14.0
+    stage3_time_preserve_weight = 0.0
+    terminal_success_quality_weight = 0.0
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
     stage4_push_ready_progress = 0.60
@@ -271,6 +273,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.target_center_shell_improvement = torch.zeros((self.num_envs,), device=self.device)
         self.center_shortest_path_score = torch.zeros((self.num_envs,), device=self.device)
         self.stage4_time_pressure = torch.zeros((self.num_envs,), device=self.device)
+        self.stage3_time_preserve = torch.zeros((self.num_envs,), device=self.device)
+        self.terminal_success_quality = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.pregrasp_held = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -369,6 +373,12 @@ class MT4ReachEnv(DirectRLEnv):
             cfg.stage4_distance_shell_weight = float(
                 os.environ.get("MT4_REACH_STAGE4_DISTANCE_SHELL_WEIGHT", "28.0")
             )
+            cfg.stage3_time_preserve_weight = float(
+                os.environ.get("MT4_REACH_STAGE3_TIME_PRESERVE_WEIGHT", "0.0")
+            )
+            cfg.terminal_success_quality_weight = float(
+                os.environ.get("MT4_REACH_TERMINAL_SUCCESS_QUALITY_WEIGHT", "0.0")
+            )
             cfg.center_push_improvement_scale = float(
                 os.environ.get("MT4_REACH_CENTER_PUSH_IMPROVEMENT_SCALE", "0.012")
             )
@@ -379,7 +389,7 @@ class MT4ReachEnv(DirectRLEnv):
                 os.environ.get("MT4_REACH_STAGE4_PUSH_READY_PROGRESS", "0.60")
             )
             cfg.pregrasp_bonus_weight = 0.2
-            cfg.success_bonus_weight = 48.0
+            cfg.success_bonus_weight = float(os.environ.get("MT4_REACH_SUCCESS_BONUS", "48.0"))
             cfg.target_contact_penalty_weight = 120.0
             cfg.action_penalty_weight = float(os.environ.get("MT4_REACH_ACTION_PENALTY", "0.018"))
             cfg.time_penalty_weight = 0.003
@@ -620,8 +630,27 @@ class MT4ReachEnv(DirectRLEnv):
         success = (
             final_center_ready
         )
+        final_center_precision = torch.clamp(
+            1.0 - self.distance / max(float(self.cfg.final_center_success_radius), 1e-6),
+            min=0.0,
+            max=1.0,
+        )
+        terminal_success_quality = success.float() * (
+            0.45 * center_shortest_path_score
+            + 0.30 * center_push_progress_reward
+            + 0.25 * final_center_precision
+        )
+        stage3_time_preserve = (
+            stage3_ready.float()
+            * (~success).float()
+            * time_fraction
+            * insertion_line_reward
+            * insertion_alignment_reward
+            * touch_ready_reward
+        )
         pregrasp_bonus = pregrasp_success.float() * self.cfg.pregrasp_bonus_weight
         success_bonus = success.float() * self.cfg.success_bonus_weight
+        success_reward = success_bonus + self.cfg.terminal_success_quality_weight * terminal_success_quality
         stage4_time_pressure = stage3_ready.float() * time_fraction * (~success).float()
 
         shaping_reward = (
@@ -643,6 +672,7 @@ class MT4ReachEnv(DirectRLEnv):
                 + self.cfg.stage3_progress_weight * insertion_progress_reward
                 + self.cfg.stage3_depth_weight * touch_depth_reward
                 + self.cfg.stage3_slow_weight * insertion_slow_reward
+                + self.cfg.stage3_time_preserve_weight * stage3_time_preserve
                 + self.cfg.stage4_center_improvement_weight
                 * center_improvement_reward
                 * (0.25 + 0.75 * center_shortest_path_score)
@@ -670,7 +700,9 @@ class MT4ReachEnv(DirectRLEnv):
             - self.cfg.time_penalty_weight * time_fraction * (~success).float()
             - self.cfg.stage4_time_penalty_weight * stage4_time_pressure
         )
-        reward = torch.where(success, success_bonus, shaping_reward)
+        reward = torch.where(success, success_reward, shaping_reward)
+        self.stage3_time_preserve = stage3_time_preserve
+        self.terminal_success_quality = terminal_success_quality
         self.stage4_time_pressure = stage4_time_pressure
         return reward
 
@@ -779,6 +811,12 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_stage4_time_pressure": getattr(
                 self, "stage4_time_pressure", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_stage3_time_preserve": getattr(
+                self, "stage3_time_preserve", torch.zeros_like(self.distance)
+            ).mean(),
+            "mt4/mean_terminal_success_quality": getattr(
+                self, "terminal_success_quality", torch.zeros_like(self.distance)
+            ).mean(),
             "mt4/mean_pregrasp_line_error": self.pregrasp_line_error.mean(),
             "mt4/min_distance": self.distance.min(),
         }
@@ -810,6 +848,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.target_center_shell_improvement[env_ids] = 0.0
         self.center_shortest_path_score[env_ids] = 0.0
         self.stage4_time_pressure[env_ids] = 0.0
+        self.stage3_time_preserve[env_ids] = 0.0
+        self.terminal_success_quality[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False
         self._sample_targets(env_ids)
