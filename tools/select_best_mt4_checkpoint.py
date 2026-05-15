@@ -54,6 +54,7 @@ with CSV_PATH.open("r", encoding="utf-8") as f:
         row["_mean_stage4_time_pressure"] = to_float(row.get("mean_stage4_time_pressure"))
         row["_mean_stage3_time_preserve"] = to_float(row.get("mean_stage3_time_preserve"))
         row["_mean_terminal_success_quality"] = to_float(row.get("mean_terminal_success_quality"))
+        row["_mean_near_terminal_reward"] = to_float(row.get("mean_near_terminal_reward"))
         row["_mean_pregrasp_line_error"] = to_float(row.get("mean_pregrasp_line_error"))
         row["_mean_reward"] = to_float(row.get("mean_reward"))
         row["_primary_distance"] = row["_mean_pregrasp_distance"]
@@ -122,6 +123,7 @@ else:
                 stage4_time_pressure = r["_mean_stage4_time_pressure"] or 0.0
                 stage3_time_preserve = r["_mean_stage3_time_preserve"] or 0.0
                 terminal_success_quality = r["_mean_terminal_success_quality"] or 0.0
+                near_terminal_reward = r["_mean_near_terminal_reward"] or 0.0
                 line_error = r["_mean_pregrasp_line_error"] or 0.0
                 reward = r["_mean_reward"] or 0.0
                 return (
@@ -152,6 +154,7 @@ else:
                     +0.35 * center_shortest_path_score
                     +0.20 * stage3_time_preserve
                     +0.50 * terminal_success_quality
+                    +0.40 * near_terminal_reward
                     -0.05 * stage4_time_pressure
                     -0.50 * (best_center_distance if best_center_distance is not None else distance)
                     +10.0 * success
@@ -223,6 +226,7 @@ print("shortest_path=", best.get("mean_center_shortest_path_score"))
 print("stage4_time  =", best.get("mean_stage4_time_pressure"))
 print("stage3_time  =", best.get("mean_stage3_time_preserve"))
 print("term_quality =", best.get("mean_terminal_success_quality"))
+print("near_terminal=", best.get("mean_near_terminal_reward"))
 print("line_error   =", best.get("mean_pregrasp_line_error"))
 print("min_distance  =", best.get("min_distance"))
 print("mean_reward   =", best.get("mean_reward"))

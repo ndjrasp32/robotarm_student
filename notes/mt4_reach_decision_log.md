@@ -571,3 +571,56 @@
   - 이전 `0.045m` 실험과 비교해 성공률은 거의 유지되고 stage3 touch는 소폭 개선되었다.
   - 학습 후반 stage3는 더 안정되었지만 final success는 다시 낮아졌다.
   - 따라서 앞 단계 보존 가중치는 방향이 맞지만, 마지막 중심 진입을 직접 강화하는 보상이 더 필요하다.
+
+## 2026-05-15 near-terminal reward experiment
+
+- 선생님 의견:
+  - 최종 성공 직전까지는 시간 벌점을 유지하고, 성공하면 추가 보상/벌점을 멈추는 방식이 좋다.
+  - 마지막 단계에서는 빨간 구체 중심으로 최단거리 진입을 유도하되, 앞 단계 결과가 흐트러지면 안 된다.
+  - 탐색 비율은 너무 낮추지 말고 아주 조금 올려 더 나은 체크포인트를 찾게 한다.
+  - 보상과 벌점 항목이 너무 많아지면 상충될 수 있다는 우려가 있다.
+- Codex 제안:
+  - 새 보상을 많이 추가하지 않고 `near_terminal_reward` 하나만 추가한다.
+  - 성공 반경은 `0.045m`로 유지하고, 그 바깥 `0.050m` 안쪽에 들어온 상태만 작은 bridge reward로 보상한다.
+  - 이 보상은 stage3가 준비되어 있고, 빨간 구체와 충돌하지 않으며, 최단거리 방향과 push progress가 모두 괜찮을 때만 커진다.
+  - `stage3_time_preserve_weight`는 `1.6 -> 1.2`로 낮춰 마지막 진입을 지나치게 막지 않게 한다.
+  - entropy는 `0.0025 -> 0.0030`으로 조금만 올린다.
+- 적용:
+  - `near_terminal_weight`, `near_terminal_radius` 환경변수 추가
+  - `mean_near_terminal_reward` 로그 추가
+  - `scripts/train_stage4_near_terminal_128_300.sh` 추가
+  - plot/select/experiment record 도구가 새 지표를 읽도록 업데이트
+- 평가 기준:
+  - `success_rate`가 유지 또는 상승하는가
+  - `stage3_touch_ready_rate`가 크게 떨어지지 않는가
+  - `mean_near_terminal_reward`가 생기는가
+  - `mean_target_contact_penalty`가 0에 가깝게 유지되는가
+- 실행 결과:
+  - run은 `2026-05-15_14-18-24`, best checkpoint는 `model_1600.pt`였다.
+  - `success_rate=0.01416015625`
+  - `stage3_touch_ready_rate=0.370849609375`
+  - `stage4_center_ready_rate=0.01416015625`
+  - `stage4_push_ready_rate=0.037841796875`
+  - `mean_near_terminal_reward=0.034814152866601944`
+  - `mean_stage3_time_preserve=0.07492419332265854`
+  - `mean_stage4_time_pressure=0.13307860493659973`
+  - `mean_target_contact_penalty=0.0`
+- 평가:
+  - near-terminal 지표는 정상적으로 기록되었고, 충돌 벌점은 0으로 유지되었다.
+  - 하지만 best checkpoint가 run 시작점인 `model_1600.pt`로 선택되어, 이번 추가 학습 자체가 최종 성공률을 더 끌어올렸다고 보기는 어렵다.
+  - 학습 중반에는 stage3 touch가 0.7-0.8까지 올라갔지만 final success는 거의 사라졌다.
+  - 다음 구조는 선생님이 제안한 stage latch와 progressive stage weighting이 적절하다.
+
+## 2026-05-15 stage latch + progressive weighting idea
+
+- 선생님 의견:
+  - 앞 스테이지를 완수한 시점에서 다음 스테이지에 진입한다.
+  - 후반 스테이지 성공에 가까워질수록 해당 스테이지를 확보한 점수에 더 강한 가중치를 부과한다.
+- Codex 해석:
+  - 이 방식은 reward 항목을 무작정 늘리는 것보다 낫다.
+  - 보상을 항상 켜두는 것이 아니라, stage gate를 통과한 뒤에만 후속 보상이 의미를 갖기 때문이다.
+  - 현재 `pregrasp_held`처럼 일부 latch는 이미 있으므로, stage1/stage2/stage3 latch를 명확히 분리하고 로그로 볼 수 있게 만드는 것이 다음 개선이다.
+- 주의점:
+  - stage 유지 보상이 너무 크면 로봇팔이 앞 stage에 머무를 수 있다.
+  - progressive weight는 작게 시작하고, success 시에는 기존처럼 terminal reward만 남겨야 한다.
+  - 학생 설명에서는 "문제를 순서대로 잠금 해제하는 강화학습"으로 표현하면 이해하기 쉽다.

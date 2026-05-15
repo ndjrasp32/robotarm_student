@@ -59,6 +59,7 @@ FIELDS = [
     "mean_stage4_time_pressure",
     "mean_stage3_time_preserve",
     "mean_terminal_success_quality",
+    "mean_near_terminal_reward",
     "mean_pregrasp_line_error",
     "min_distance",
     "mean_reward",
@@ -240,6 +241,7 @@ def main() -> None:
         "mean_stage4_time_pressure": summary.get("mean_stage4_time_pressure", ""),
         "mean_stage3_time_preserve": summary.get("mean_stage3_time_preserve", ""),
         "mean_terminal_success_quality": summary.get("mean_terminal_success_quality", ""),
+        "mean_near_terminal_reward": summary.get("mean_near_terminal_reward", ""),
         "mean_pregrasp_line_error": summary.get("mean_pregrasp_line_error", ""),
         "min_distance": summary.get("min_distance", ""),
         "mean_reward": summary.get("mean_reward", ""),
@@ -311,6 +313,7 @@ def main() -> None:
                 f"| mean_stage4_time_pressure | {row['mean_stage4_time_pressure']} |",
                 f"| mean_stage3_time_preserve | {row['mean_stage3_time_preserve']} |",
                 f"| mean_terminal_success_quality | {row['mean_terminal_success_quality']} |",
+                f"| mean_near_terminal_reward | {row['mean_near_terminal_reward']} |",
                 f"| mean_pregrasp_line_error | {row['mean_pregrasp_line_error']} |",
                 "",
                 "## Interpretation",
@@ -356,6 +359,7 @@ def main() -> None:
     print(" stage4_time   =", row["mean_stage4_time_pressure"])
     print(" stage3_time   =", row["mean_stage3_time_preserve"])
     print(" term_quality  =", row["mean_terminal_success_quality"])
+    print(" near_terminal =", row["mean_near_terminal_reward"])
     print(" line_error    =", row["mean_pregrasp_line_error"])
 
 

@@ -186,6 +186,8 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     stage4_distance_shell_weight = 14.0
     stage3_time_preserve_weight = 0.0
     terminal_success_quality_weight = 0.0
+    near_terminal_weight = 0.0
+    near_terminal_radius = 0.050
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
     stage4_push_ready_progress = 0.60
@@ -275,6 +277,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage4_time_pressure = torch.zeros((self.num_envs,), device=self.device)
         self.stage3_time_preserve = torch.zeros((self.num_envs,), device=self.device)
         self.terminal_success_quality = torch.zeros((self.num_envs,), device=self.device)
+        self.near_terminal_reward = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_line_error = torch.zeros((self.num_envs,), device=self.device)
         self.pregrasp_entry_reached = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.pregrasp_held = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -378,6 +381,12 @@ class MT4ReachEnv(DirectRLEnv):
             )
             cfg.terminal_success_quality_weight = float(
                 os.environ.get("MT4_REACH_TERMINAL_SUCCESS_QUALITY_WEIGHT", "0.0")
+            )
+            cfg.near_terminal_weight = float(
+                os.environ.get("MT4_REACH_NEAR_TERMINAL_WEIGHT", "0.0")
+            )
+            cfg.near_terminal_radius = float(
+                os.environ.get("MT4_REACH_NEAR_TERMINAL_RADIUS", "0.050")
             )
             cfg.center_push_improvement_scale = float(
                 os.environ.get("MT4_REACH_CENTER_PUSH_IMPROVEMENT_SCALE", "0.012")
@@ -640,6 +649,27 @@ class MT4ReachEnv(DirectRLEnv):
             + 0.30 * center_push_progress_reward
             + 0.25 * final_center_precision
         )
+        near_terminal_margin = max(
+            float(self.cfg.near_terminal_radius - self.cfg.final_center_success_radius),
+            1e-6,
+        )
+        near_terminal_progress = torch.clamp(
+            (float(self.cfg.near_terminal_radius) - self.distance) / near_terminal_margin,
+            min=0.0,
+            max=1.0,
+        )
+        near_terminal_ready = (
+            stage3_ready
+            & (~success)
+            & (self.distance < self.cfg.near_terminal_radius)
+            & (self.body_target_clearance_error <= 1e-4)
+        )
+        near_terminal_reward = (
+            near_terminal_ready.float()
+            * near_terminal_progress
+            * (0.50 + 0.50 * center_shortest_path_score)
+            * (0.50 + 0.50 * center_push_progress_reward)
+        )
         stage3_time_preserve = (
             stage3_ready.float()
             * (~success).float()
@@ -690,6 +720,7 @@ class MT4ReachEnv(DirectRLEnv):
                 * center_push_depth_reward
                 * insertion_line_reward
                 * insertion_alignment_reward
+                + self.cfg.near_terminal_weight * near_terminal_reward
             )
             + pregrasp_bonus
             + pregrasp_entry_success.float() * 0.5
@@ -703,6 +734,7 @@ class MT4ReachEnv(DirectRLEnv):
         reward = torch.where(success, success_reward, shaping_reward)
         self.stage3_time_preserve = stage3_time_preserve
         self.terminal_success_quality = terminal_success_quality
+        self.near_terminal_reward = near_terminal_reward
         self.stage4_time_pressure = stage4_time_pressure
         return reward
 
@@ -817,6 +849,9 @@ class MT4ReachEnv(DirectRLEnv):
             "mt4/mean_terminal_success_quality": getattr(
                 self, "terminal_success_quality", torch.zeros_like(self.distance)
             ).mean(),
+            "mt4/mean_near_terminal_reward": getattr(
+                self, "near_terminal_reward", torch.zeros_like(self.distance)
+            ).mean(),
             "mt4/mean_pregrasp_line_error": self.pregrasp_line_error.mean(),
             "mt4/min_distance": self.distance.min(),
         }
@@ -850,6 +885,7 @@ class MT4ReachEnv(DirectRLEnv):
         self.stage4_time_pressure[env_ids] = 0.0
         self.stage3_time_preserve[env_ids] = 0.0
         self.terminal_success_quality[env_ids] = 0.0
+        self.near_terminal_reward[env_ids] = 0.0
         self.pregrasp_entry_reached[env_ids] = False
         self.pregrasp_held[env_ids] = False
         self._sample_targets(env_ids)
