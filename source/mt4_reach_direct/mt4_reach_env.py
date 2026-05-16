@@ -26,7 +26,7 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
 
     # spaces
     action_space = 5
-    observation_space = 28
+    observation_space = 31
     state_space = 0
 
     # "integrated" keeps the original staged reach reward. "stage_b_insertion" is a
@@ -138,6 +138,7 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     gripper_center_offset_b = (0.158, 0.0, 0.0)
     gripper_tip_offset_b = (0.166, 0.0, 0.0)
     gripper_forward_axis_b = (1.0, 0.0, 0.0)
+    gripper_side_axis_b = (0.0, 1.0, 0.0)
     target_radius = 0.025
     desired_touch_distance = 0.030
     touch_success_band = 0.045
@@ -209,6 +210,7 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     center_push_improvement_scale = 0.020
     center_distance_shell_size = 0.005
     stage4_push_ready_progress = 0.60
+    gripper_roll_alignment_weight = 0.0
     pregrasp_bonus_weight = 2.5
     success_bonus_weight = 18.0
     target_contact_penalty_weight = 70.0
@@ -258,6 +260,8 @@ class MT4ReachEnv(DirectRLEnv):
         self.gripper_center_pos = torch.zeros((self.num_envs, 3), device=self.device)
         self.gripper_tip_pos = torch.zeros((self.num_envs, 3), device=self.device)
         self.gripper_forward = torch.zeros((self.num_envs, 3), device=self.device)
+        self.gripper_side = torch.zeros((self.num_envs, 3), device=self.device)
+        self.gripper_roll_alignment = torch.zeros((self.num_envs,), device=self.device)
         self.approach_dir = torch.zeros((self.num_envs, 3), device=self.device)
         self.desired_gripper_dir = torch.zeros((self.num_envs, 3), device=self.device)
         self.desired_pregrasp_dir = torch.zeros((self.num_envs, 3), device=self.device)
@@ -496,6 +500,9 @@ class MT4ReachEnv(DirectRLEnv):
             cfg.stage4_push_ready_progress = float(
                 os.environ.get("MT4_REACH_STAGE4_PUSH_READY_PROGRESS", "0.60")
             )
+            cfg.gripper_roll_alignment_weight = float(
+                os.environ.get("MT4_REACH_GRIPPER_ROLL_WEIGHT", "2.5")
+            )
             cfg.pregrasp_bonus_weight = 0.2
             cfg.success_bonus_weight = float(os.environ.get("MT4_REACH_SUCCESS_BONUS", "48.0"))
             cfg.target_contact_penalty_weight = 120.0
@@ -615,6 +622,7 @@ class MT4ReachEnv(DirectRLEnv):
                 self.pregrasp_targets,
                 self.to_pregrasp,
                 self.gripper_forward,
+                self.gripper_side,
             ],
             dim=-1,
         )
@@ -625,6 +633,7 @@ class MT4ReachEnv(DirectRLEnv):
         self._compute_intermediate_values()
 
         insertion_alignment_reward = torch.clamp(0.5 * (self.insertion_alignment + 1.0), min=0.0, max=1.0)
+        gripper_roll_reward = torch.clamp(0.5 * (self.gripper_roll_alignment + 1.0), min=0.0, max=1.0)
         alignment_gate = torch.clamp((self.insertion_alignment - 0.10) / 0.90, min=0.0, max=1.0)
         pregrasp_entry_reward = 1.0 / (1.0 + 55.0 * self.pregrasp_entry_distance * self.pregrasp_entry_distance)
         pregrasp_entry_touch_reward = torch.exp(-650.0 * self.pregrasp_entry_distance * self.pregrasp_entry_distance)
@@ -879,6 +888,7 @@ class MT4ReachEnv(DirectRLEnv):
 
         shaping_reward = (
             self.cfg.stage1_alignment_weight * insertion_alignment_reward
+            + self.cfg.gripper_roll_alignment_weight * gripper_roll_reward
             + alignment_gate * (
                 self.cfg.stage2_entry_weight * pregrasp_entry_reward
                 + self.cfg.stage2_entry_touch_weight * pregrasp_entry_touch_reward
@@ -1116,6 +1126,7 @@ class MT4ReachEnv(DirectRLEnv):
                 self, "final_insertion_reward", torch.zeros_like(self.distance)
             ).mean(),
             "mt4/mean_pregrasp_line_error": self.pregrasp_line_error.mean(),
+            "mt4/mean_gripper_roll_alignment": self.gripper_roll_alignment.mean(),
             "mt4/min_distance": self.distance.min(),
         }
 
@@ -1322,12 +1333,21 @@ class MT4ReachEnv(DirectRLEnv):
 
         center_offset_b = torch.tensor(self.cfg.gripper_center_offset_b, device=self.device).repeat(self.num_envs, 1)
         forward_axis_b = torch.tensor(self.cfg.gripper_forward_axis_b, device=self.device).repeat(self.num_envs, 1)
+        side_axis_b = torch.tensor(self.cfg.gripper_side_axis_b, device=self.device).repeat(self.num_envs, 1)
         self.gripper_center_pos = self.wrist_pos + math_utils.quat_apply(wrist_quat_w, center_offset_b)
         # Keep the legacy variable name for existing observations/tools. It now represents
         # the midpoint between the two gripper pads, which is the point that must meet blue.
         self.gripper_tip_pos = self.gripper_center_pos
         self.gripper_forward = math_utils.quat_apply(wrist_quat_w, forward_axis_b)
         self.gripper_forward = self.gripper_forward / torch.clamp(torch.linalg.norm(self.gripper_forward, dim=-1, keepdim=True), min=1e-6)
+        self.gripper_side = math_utils.quat_apply(wrist_quat_w, side_axis_b)
+        self.gripper_side = self.gripper_side / torch.clamp(torch.linalg.norm(self.gripper_side, dim=-1, keepdim=True), min=1e-6)
+        world_up = torch.tensor([0.0, 0.0, 1.0], device=self.device).repeat(self.num_envs, 1)
+        up_along_approach = torch.sum(world_up * self.approach_dir, dim=-1, keepdim=True) * self.approach_dir
+        up_perp = world_up - up_along_approach
+        up_perp_norm = torch.linalg.norm(up_perp, dim=-1, keepdim=True)
+        up_perp = torch.where(up_perp_norm > 1e-6, up_perp / torch.clamp(up_perp_norm, min=1e-6), world_up)
+        self.gripper_roll_alignment = torch.sum(self.gripper_side * up_perp, dim=-1)
 
         self.to_target = self.targets - self.gripper_tip_pos
         self.to_pregrasp_entry = self.pregrasp_entry_targets - self.gripper_tip_pos
