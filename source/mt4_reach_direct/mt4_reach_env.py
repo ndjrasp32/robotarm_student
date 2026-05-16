@@ -452,13 +452,13 @@ class MT4ReachEnv(DirectRLEnv):
                 os.environ.get("MT4_REACH_MOVING_PREGRASP_FINAL_FRACTION", "0.70")
             )
             cfg.moving_pregrasp_step_radius = float(
-                os.environ.get("MT4_REACH_MOVING_PREGRASP_STEP_RADIUS", "0.055")
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_STEP_RADIUS", "0.045")
             )
             cfg.moving_pregrasp_hold_steps = int(
-                os.environ.get("MT4_REACH_MOVING_PREGRASP_HOLD_STEPS", "1")
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_HOLD_STEPS", "2")
             )
             cfg.moving_pregrasp_reward_weight = float(
-                os.environ.get("MT4_REACH_MOVING_PREGRASP_REWARD_WEIGHT", "0.0")
+                os.environ.get("MT4_REACH_MOVING_PREGRASP_REWARD_WEIGHT", "20.0")
             )
             cfg.moving_pregrasp_funnel_weight = float(
                 os.environ.get("MT4_REACH_MOVING_PREGRASP_FUNNEL_WEIGHT", "0.0")
