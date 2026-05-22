@@ -17,7 +17,7 @@ TASK_BY_MISSION = {
     "pull": "Isaac-MT4-Mars-Twin-Pull-Direct-v0",
 }
 
-PROJECT_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR = Path.home() / "work/robotarm/robotarm_student"
 ASSET_PATH = PROJECT_DIR / "assets/usd/mt4_simplified_v4_two_finger.usd"
 sys.path.append(str(PROJECT_DIR / "source"))
 

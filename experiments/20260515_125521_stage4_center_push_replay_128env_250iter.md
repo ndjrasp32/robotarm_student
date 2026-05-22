@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T12:57:34
 - checkpoint: `model_950.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_12-55-21/model_950.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_125521_stage4_center_push_replay_128env_250iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_125521_stage4_center_push_replay_128env_250iter`
 - reward profile: `stage4_center_push`
 - notes: Stage4 center-push reward: progress from pregrasp target toward red target center while maintaining insertion alignment and lateral accuracy. Best checkpoint selected before late drift.
 

@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T12:08:57
 - checkpoint: `model_600.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_12-05-32/model_600.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_120532_pregrasp_entry_stage3_replay_128env_450iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_120532_pregrasp_entry_stage3_replay_128env_450iter`
 - reward profile: `pregrasp_entry_stage3_replay`
 - notes: Pregrasp entry->center->insertion curriculum with replay reset. Best checkpoint reached high stage3 insertion readiness, but final touch/success remains low.
 

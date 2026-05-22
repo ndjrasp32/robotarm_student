@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 ISAACLAB_DIR="${HOME}/work/isaac/src/IsaacLab"
 BEST_FILE="${PROJECT_DIR}/logs/plots/best_checkpoint.txt"
 

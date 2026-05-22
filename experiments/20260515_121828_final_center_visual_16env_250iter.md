@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T12:25:05
 - checkpoint: `model_750.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_12-18-28/model_750.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_121828_final_center_visual_16env_250iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_121828_final_center_visual_16env_250iter`
 - reward profile: `final_center_capture_visual`
 - notes: GUI visual run from model_600 with final center capture reward. Stage3 insertion/touch became strong; stage4 final center success appeared but remained sparse, so next work should use a stage4-specific replay curriculum or slightly relaxed final radius.
 

@@ -37,7 +37,7 @@ unset CMEEL_PREFIX
 export DISPLAY=:1
 export MT4_REACH_TRAINING_MODE=stage_b_insertion
 export MT4_REACH_RESET_MODE=pregrasp_replay
-export MT4_REACH_PREGRASP_STATE_FILE=~/work/robotarm/mt4_isaac_lab_task/data/pregrasp_states/latest.pt
+export MT4_REACH_PREGRASP_STATE_FILE=~/work/robotarm/robotarm_student/data/pregrasp_states/latest.pt
 export MT4_REACH_REPLAY_PROB=0.80
 export MT4_REACH_REPLAY_JOINT_NOISE=0.012
 export MT4_REACH_REPLAY_TARGET_NOISE=0.003

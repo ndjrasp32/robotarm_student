@@ -7,8 +7,8 @@ if [[ -z "${TERM:-}" || "${TERM}" == "dumb" ]]; then
   export TERM=xterm-256color
 fi
 
-TOOLS_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task/tools"
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+TOOLS_DIR="${HOME}/work/robotarm/robotarm_student/tools"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 PLOTS_DIR="${PROJECT_DIR}/logs/plots"
 BEST_FILE="${PLOTS_DIR}/best_checkpoint.txt"
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 import csv
 
-PLOTS_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task/logs/plots"
+PLOTS_DIR = Path.home() / "work/robotarm/robotarm_student/logs/plots"
 CSV_PATH = PLOTS_DIR / "mt4_checkpoint_summary.csv"
 OUT_PATH = PLOTS_DIR / "best_checkpoint.txt"
 

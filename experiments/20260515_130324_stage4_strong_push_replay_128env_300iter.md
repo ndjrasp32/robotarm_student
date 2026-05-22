@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T13:05:54
 - checkpoint: `model_1249.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_13-03-24/model_1249.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_130324_stage4_strong_push_replay_128env_300iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_130324_stage4_strong_push_replay_128env_300iter`
 - reward profile: `stage4_strong_push`
 - notes: Stronger Stage4 push curriculum: reward new best center-push progress and deeper push after progress 0.5. Improved push progress and produced sparse final center success, but final success remains low.
 

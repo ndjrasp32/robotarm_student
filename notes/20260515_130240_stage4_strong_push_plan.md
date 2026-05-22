@@ -25,7 +25,7 @@
 - 강한 마지막 push 학습 스크립트 추가:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_push_strong_replay_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_push_strong_replay_128_300.sh --seed 42
 ```
 
 ## 기대

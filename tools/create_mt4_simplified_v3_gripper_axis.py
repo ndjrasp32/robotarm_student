@@ -16,7 +16,7 @@ except Exception:
     PhysxSchema = None
 
 
-PROJECT_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR = Path.home() / "work/robotarm/robotarm_student"
 SRC = PROJECT_DIR / "assets/usd/mt4_simplified_v2.usd"
 DST = PROJECT_DIR / "assets/usd/mt4_simplified_v3.usd"
 ROOT = "/mt4_simplified_v2"

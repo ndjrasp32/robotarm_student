@@ -33,8 +33,8 @@
 3. stage 3 replay-reset curriculum을 짧게 실행한다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
 ```
 
 ## 평가 기준

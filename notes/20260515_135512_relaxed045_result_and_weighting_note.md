@@ -16,10 +16,10 @@
 
 ```bash
 MT4_REACH_FINAL_CENTER_RADIUS=0.045 \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_relaxed_success_128_300.sh --seed 42
+  ~/work/robotarm/robotarm_student/scripts/train_stage4_relaxed_success_128_300.sh --seed 42
 
 MT4_PLOT_LABEL=20260515_135512_stage4_relaxed045_128env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 ## 실행 결과

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 ISAAC_LOG_ROOT="${HOME}/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct"
 OUTPUT_DIR="${PROJECT_DIR}/logs/videos"
 

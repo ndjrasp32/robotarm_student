@@ -3,7 +3,7 @@ from tensorboard.backend.event_processing import event_accumulator
 import matplotlib.pyplot as plt
 
 log_root = Path.home() / "work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct"
-out_dir = Path.home() / "work/robotarm/mt4_isaac_lab_task/logs/plots"
+out_dir = Path.home() / "work/robotarm/robotarm_student/logs/plots"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 event_files = sorted(log_root.rglob("events.out.tfevents.*"))

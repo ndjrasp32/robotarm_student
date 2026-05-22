@@ -7,7 +7,7 @@ Stage-B insertion 학습에서 마지막 touch-depth 성공이 희소하게 나�
 ## 수집
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
 ```
 
 수집 결과:
@@ -28,9 +28,9 @@ data/pregrasp_states/latest.pt
 ## 학습 실행
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label stage_b_replay_reset_seed42_128env_500iter \
   --seed 42 \
   --num-envs 128 \

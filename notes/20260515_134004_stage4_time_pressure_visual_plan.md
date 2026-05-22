@@ -31,15 +31,15 @@
 GUI 확인:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_time_pressure_visual_16_120.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_time_pressure_visual_16_120.sh --seed 42
 ```
 
 128 env 결과 확인:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_push_strong_replay_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_push_strong_replay_128_300.sh --seed 42
 MT4_PLOT_LABEL=20260515_134344_stage4_time_pressure_128env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 ## 실행 결과

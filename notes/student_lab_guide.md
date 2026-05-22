@@ -255,25 +255,25 @@ logs/plots/
 병렬 학습 장면을 Isaac Sim에서 직접 보려면 다음을 실행합니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
 ```
 
 긴 baseline 학습은 다음을 실행합니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_128_1000.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_128_1000.sh --seed 42
 ```
 
 학습 후 그래프를 만들고 best checkpoint를 고릅니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 best checkpoint 하나를 실제 시연처럼 봅니다.
 
 ```bash
-DEMO_SECONDS=120 ~/work/robotarm/mt4_isaac_lab_task/scripts/play_best_demo.sh
+DEMO_SECONDS=120 ~/work/robotarm/robotarm_student/scripts/play_best_demo.sh
 ```
 
 VNC 화면에서 Isaac Sim 창이 뜨지 않으면 먼저 실행합니다.
@@ -339,7 +339,7 @@ xhost +SI:localuser:spark-robotics
 첫 Stage-B 초기 학습은 기존 best checkpoint에서 이어받아 실행합니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_insertion_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage_b_insertion_128_500.sh --seed 42
 ```
 
 Stage-B 초기 학습 결과, 로봇팔은 빨간 공 표면에 더 가까워졌지만 성공률은 아직 낮았습니다. 그래서 다음에는 curriculum reset을 사용합니다. 이것은 마지막 삽입 동작을 더 많이 연습시키기 위해, Policy A가 파란 공 근처에 잘 도착한 순간을 저장해 두고 Stage-B 학습을 그 근처에서 시작시키는 방법입니다.
@@ -359,9 +359,9 @@ Stage-B 초기 학습 결과, 로봇팔은 빨간 공 표면에 더 가까워졌
 실행 순서는 다음입니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 최근 GUI 학습에서는 16개 병렬 환경을 화면으로 보면서 마지막 중심 정렬을 확인했습니다. 결과는 `stage3_touch_ready_rate=0.90234375`, `stage4_center_ready_rate=0.001953125`, `success_rate=0.001953125`였습니다.

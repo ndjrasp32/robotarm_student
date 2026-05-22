@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 
 
-PROJECT_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR = Path.home() / "work/robotarm/robotarm_student"
 PLOTS_DIR = PROJECT_DIR / "logs/plots"
 BEST_PATH = PLOTS_DIR / "best_checkpoint.txt"
 SUMMARY_PATH = PLOTS_DIR / "mt4_checkpoint_summary.csv"

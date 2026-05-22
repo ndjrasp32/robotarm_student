@@ -41,9 +41,9 @@
 ## 실행
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_weighted_balance_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_weighted_balance_128_300.sh --seed 42
 MT4_PLOT_LABEL=20260515_140210_stage4_weighted_balance_128env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 ## 평가 기준

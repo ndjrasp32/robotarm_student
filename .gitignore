@@ -12,10 +12,14 @@ __pycache__/
 
 # RL logs and checkpoints
 logs/rsl_rl/
+logs/plots/
 logs/**/events.out.tfevents.*
 logs/**/*.pt
 logs/**/*.pth
 logs/**/*.onnx
+
+# Generated experiment summaries
+experiments/*_metrics.csv
 
 # Large exported archives
 *.tar.gz

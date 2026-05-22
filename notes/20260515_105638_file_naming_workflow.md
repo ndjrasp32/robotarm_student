@@ -33,7 +33,7 @@ logs/plots/20260515_113000_radial_pregrasp_visual_16env_300iter/
 
 ```bash
 MT4_PLOT_LABEL=radial_pregrasp_visual_16env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 생성 예시:
@@ -45,7 +45,7 @@ logs/plots/20260515_113000_radial_pregrasp_visual_16env_300iter/
 `scripts/record_experiment_result.sh`는 기존 누적 CSV에 한 줄을 추가하면서, 같은 timestamp와 label을 가진 개별 보고서도 만든다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label radial_pregrasp_visual_16env_300iter \
   --seed 42 \
   --num-envs 16 \
@@ -72,10 +72,10 @@ experiments/20260515_113000_radial_pregrasp_visual_16env_300iter_metrics.csv
 파일 정리 규칙을 적용한 뒤, 바로 긴 학습으로 가지 않고 새 radial pregrasp marker가 화면에서 맞는지 16 env / 300 iter 시각 학습으로 먼저 확인한다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
 MT4_PLOT_LABEL=radial_pregrasp_visual_16env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label radial_pregrasp_visual_16env_300iter \
   --seed 42 \
   --num-envs 16 \

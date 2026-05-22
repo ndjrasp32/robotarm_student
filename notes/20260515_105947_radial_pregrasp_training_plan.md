@@ -18,10 +18,10 @@
 실행:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
 MT4_PLOT_LABEL=radial_pregrasp_visual_16env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label radial_pregrasp_visual_16env_300iter \
   --seed 42 \
   --num-envs 16 \
@@ -42,10 +42,10 @@ MT4_PLOT_LABEL=radial_pregrasp_visual_16env_300iter \
 1단계가 납득되면 128 env / 1000 iter로 새 baseline을 만든다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_128_1000.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_128_1000.sh --seed 42
 MT4_PLOT_LABEL=radial_pregrasp_128env_1000iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label radial_pregrasp_128env_1000iter \
   --seed 42 \
   --num-envs 128 \
@@ -67,10 +67,10 @@ MT4_PLOT_LABEL=radial_pregrasp_128env_1000iter \
 full baseline에서 pregrasp hold가 생기면, 기존 `data/pregrasp_states/latest.pt`를 새 기준으로 다시 만든다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
 MT4_PLOT_LABEL=radial_stage_b_replay_reset_128env_500iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 이 단계의 목적은 처음부터 전체 동작을 다시 배우는 것이 아니라, 파란 marker에서 멈춘 뒤 빨간 공 방향으로 들어가는 마지막 구간을 더 자주 연습시키는 것이다.

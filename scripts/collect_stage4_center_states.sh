@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 BEST_FILE="${PROJECT_DIR}/logs/plots/best_checkpoint.txt"
 OUTPUT_FILE="${MT4_STAGE4_STATE_OUTPUT:-${PROJECT_DIR}/data/stage4_center_states/latest.pt}"
 

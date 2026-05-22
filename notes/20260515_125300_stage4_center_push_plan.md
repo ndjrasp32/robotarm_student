@@ -24,10 +24,10 @@
 ## 실행
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_center_push_replay_128_250.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_center_push_replay_128_250.sh --seed 42
 MT4_PLOT_LABEL=stage4_center_push_replay_128env_250iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label stage4_center_push_replay_128env_250iter \
   --seed 42 \
   --num-envs 128 \

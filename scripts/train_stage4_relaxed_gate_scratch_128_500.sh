@@ -4,7 +4,7 @@
 # from the environment's observation_space=31.
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 STATE_FILE="${MT4_REACH_STAGE4_STATE_FILE:-${PROJECT_DIR}/data/stage4_center_states/latest.pt}"
 
 cd ~/work/isaac/src/IsaacLab

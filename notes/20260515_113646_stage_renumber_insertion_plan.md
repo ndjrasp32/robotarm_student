@@ -40,10 +40,10 @@ Stage 3: 같은 방향을 유지하면서 빨간 공 쪽으로 천천히 진입
 먼저 짧은 시각 학습으로 새 stage 이름과 진입 보상이 실제로 동작하는지 확인한다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
 MT4_PLOT_LABEL=stage_renumber_insertion_visual_16env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label stage_renumber_insertion_visual_16env_300iter \
   --seed 42 \
   --num-envs 16 \
@@ -116,10 +116,10 @@ MT4_PLOT_LABEL=stage_renumber_insertion_visual_16env_300iter \
 실행:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
 MT4_PLOT_LABEL=stage_renumber_gripper_center_visual_16env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label stage_renumber_gripper_center_visual_16env_300iter \
   --seed 42 \
   --num-envs 16 \

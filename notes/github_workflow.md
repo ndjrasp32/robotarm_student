@@ -3,7 +3,7 @@
 이 프로젝트의 기본 작업 repo는 다음 경로입니다.
 
 ```bash
-cd ~/work/robotarm/mt4_isaac_lab_task
+cd ~/work/robotarm/robotarm_student
 ```
 
 기본 push 대상은 `origin main`입니다.
@@ -17,11 +17,11 @@ IsaacLab upstream repo인 `~/work/isaac/src/IsaacLab`은 실행 환경으로 사
 
 ## 작업 단위마다 반복할 절차
 
-1. 변경은 가능하면 `~/work/robotarm/mt4_isaac_lab_task` 안에서만 진행합니다.
+1. 변경은 가능하면 `~/work/robotarm/robotarm_student` 안에서만 진행합니다.
 2. 검증 스크립트를 실행합니다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/verify_before_push.sh
+~/work/robotarm/robotarm_student/scripts/verify_before_push.sh
 ```
 
 3. 변경 내용을 확인합니다.

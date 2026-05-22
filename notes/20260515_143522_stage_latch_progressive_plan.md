@@ -43,7 +43,7 @@
 ## Test Command
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_latched_progressive_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_latched_progressive_128_300.sh --seed 42
 ```
 
 ## Metrics To Watch

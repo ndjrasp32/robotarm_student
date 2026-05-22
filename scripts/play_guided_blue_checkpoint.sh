@@ -9,7 +9,7 @@ if [[ -z "${TERM:-}" || "${TERM}" == "dumb" ]]; then
 fi
 
 TASK_NAME="Isaac-MT4-Simplified-Reach-Direct-v0"
-CHECKPOINT_FILE="${HOME}/work/robotarm/mt4_isaac_lab_task/logs/plots/guided_blue_checkpoint.txt"
+CHECKPOINT_FILE="${HOME}/work/robotarm/robotarm_student/logs/plots/guided_blue_checkpoint.txt"
 
 if [[ ! -s "${CHECKPOINT_FILE}" ]]; then
   echo "[ERROR] guided_blue_checkpoint.txt was not found or is empty."

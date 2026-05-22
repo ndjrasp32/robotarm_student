@@ -2,7 +2,7 @@
 # GUI demo for the smoother Stage-4 blue guide experiment.
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 
 export MT4_REACH_STAGE4_STATE_FILE="${MT4_REACH_STAGE4_STATE_FILE:-${PROJECT_DIR}/data/stage4_safe_entry_states/latest.pt}"
 export MT4_REACH_MOVING_PREGRASP_STEPS="${MT4_REACH_MOVING_PREGRASP_STEPS:-8}"

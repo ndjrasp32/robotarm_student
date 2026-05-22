@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 ISAACLAB_DIR = Path.home() / "work/isaac/src/IsaacLab"
-PROJECT_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR = Path.home() / "work/robotarm/robotarm_student"
 RSL_RL_SCRIPT_DIR = ISAACLAB_DIR / "scripts/reinforcement_learning/rsl_rl"
 sys.path.append(str(RSL_RL_SCRIPT_DIR))
 

@@ -35,7 +35,7 @@
 ## Next Test
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/play_stage4_blue_center_best.sh
+~/work/robotarm/robotarm_student/scripts/play_stage4_blue_center_best.sh
 ```
 
 이 시연은 기존 checkpoint를 새 step gate 환경에서 보여주는 확인용이다. 실제 성능 평가는 새 기준으로 짧은 재학습을 돌린 뒤 그래프와 함께 봐야 한다.

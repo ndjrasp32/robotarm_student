@@ -10,7 +10,7 @@ from tensorboard.backend.event_processing import event_accumulator
 
 
 LOG_ROOT = Path.home() / "work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct"
-OUT_DIR = Path.home() / "work/robotarm/mt4_isaac_lab_task/logs/plots"
+OUT_DIR = Path.home() / "work/robotarm/robotarm_student/logs/plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def latest_run_dir():

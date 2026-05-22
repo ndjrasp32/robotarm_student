@@ -57,7 +57,7 @@ target_contact_penalty <= 0.0001
 실행 스크립트:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
 ```
 
 기본 저장 위치:
@@ -93,7 +93,7 @@ MT4_REACH_REPLAY_TARGET_NOISE=0.004
 실행 스크립트:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
 ```
 
 ## 5. 왜 noise를 넣는가
@@ -136,25 +136,25 @@ MT4_REACH_REPLAY_TARGET_NOISE=0.004
 1. pregrasp replay 상태 수집
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_pregrasp_states.sh
+~/work/robotarm/robotarm_student/scripts/collect_pregrasp_states.sh
 ```
 
 2. replay reset Stage-B 학습
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage_b_replay_reset_128_500.sh --seed 42
 ```
 
 3. 그래프 생성과 best checkpoint 선택
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 4. 결과 기록
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh \
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh \
   --run-label stage_b_replay_reset_seed42_128env_500iter \
   --seed 42 \
   --num-envs 128 \

@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T12:33:44
 - checkpoint: `model_900.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_12-31-14/model_900.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_123114_stage4_center_replay_128env_300iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_123114_stage4_center_replay_128env_300iter`
 - reward profile: `stage4_center_replay_small_target`
 - notes: Stage4 replay reset with smaller red target radius 0.025m and relaxed final center radius 0.035m. Stage3 touch improved strongly and target contact penalty stayed zero, but stage4 center success remained sparse; next step should reduce action std/exploration or collect states closer to the red center.
 

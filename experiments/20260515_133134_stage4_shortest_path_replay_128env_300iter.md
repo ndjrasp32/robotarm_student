@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T13:34:14
 - checkpoint: `model_1548.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_13-31-34/model_1548.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_133134_stage4_shortest_path_replay_128env_300iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_133134_stage4_shortest_path_replay_128env_300iter`
 - reward profile: `stage4_shortest_path_shell`
 - notes: Stage4 diversified reward: distance improvement is scaled by shortest-path score, and red-target distance shells pay only when the policy reaches a closer shell. Improved stage3/touch stability and path score, but push-ready remains low.
 

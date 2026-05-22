@@ -22,8 +22,8 @@
 ## Command
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_visual_16_300.sh --seed 42
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/train_visual_16_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 ## Best Checkpoint

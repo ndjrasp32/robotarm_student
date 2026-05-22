@@ -49,7 +49,7 @@
 ## Test Command
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_guided_blue_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_guided_blue_128_300.sh --seed 42
 ```
 
 ## Expected Interpretation

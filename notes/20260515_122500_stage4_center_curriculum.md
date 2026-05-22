@@ -26,10 +26,10 @@
 ## 실행 순서
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_stage4_center_states.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_center_replay_128_300.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/collect_stage4_center_states.sh
+~/work/robotarm/robotarm_student/scripts/train_stage4_center_replay_128_300.sh --seed 42
 MT4_PLOT_LABEL=stage4_center_replay_128env_300iter \
-  ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
+  ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
 ```
 
 ## 볼 지표

@@ -51,7 +51,7 @@
 새 시연 스크립트:
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/play_blue_funnel_demo.sh
+~/work/robotarm/robotarm_student/scripts/play_blue_funnel_demo.sh
 ```
 
 특징:
@@ -67,7 +67,7 @@
 다음 학습은 기존 broad funnel curriculum을 다시 실행하되, 새 shell/exponential reward가 켜진 상태로 진행한다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_blue_funnel_128_800.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_blue_funnel_128_800.sh --seed 42
 ```
 
 관찰할 핵심 지표:

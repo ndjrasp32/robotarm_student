@@ -15,7 +15,7 @@ from isaaclab.utils import math as math_utils
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 
 
-MT4_USD_PATH = "/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/assets/usd/mt4_simplified_v3.usd"
+MT4_USD_PATH = "/home/spark-robotics/work/robotarm/robotarm_student/assets/usd/mt4_simplified_v3.usd"
 
 
 @configclass
@@ -226,7 +226,7 @@ class MT4ReachEnvCfg(DirectRLEnvCfg):
     stage4_time_penalty_weight = 0.030
 
     # pregrasp replay reset curriculum
-    pregrasp_replay_state_file = "/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/data/pregrasp_states/latest.pt"
+    pregrasp_replay_state_file = "/home/spark-robotics/work/robotarm/robotarm_student/data/pregrasp_states/latest.pt"
     pregrasp_replay_probability = 0.75
     pregrasp_replay_joint_noise = 0.025
     pregrasp_replay_target_noise = 0.004

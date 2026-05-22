@@ -9,13 +9,13 @@ if [[ -z "${TERM:-}" || "${TERM}" == "dumb" ]]; then
 fi
 
 TASK_NAME="Isaac-MT4-Simplified-Reach-Direct-v0"
-BEST_FILE="${HOME}/work/robotarm/mt4_isaac_lab_task/logs/plots/best_checkpoint.txt"
+BEST_FILE="${HOME}/work/robotarm/robotarm_student/logs/plots/best_checkpoint.txt"
 
 if [[ ! -f "${BEST_FILE}" ]]; then
   echo "[ERROR] best_checkpoint.txt was not found."
   echo "        Expected path: ${BEST_FILE}"
   echo "        Run this first:"
-  echo "        ${HOME}/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh"
+  echo "        ${HOME}/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh"
   exit 1
 fi
 

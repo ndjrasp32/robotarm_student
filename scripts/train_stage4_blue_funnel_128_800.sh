@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/work/robotarm/mt4_isaac_lab_task"
+PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 
 export MT4_MAX_ITERATIONS="${MT4_MAX_ITERATIONS:-800}"
 export MT4_REACH_MOVING_PREGRASP_STEPS="${MT4_REACH_MOVING_PREGRASP_STEPS:-5}"

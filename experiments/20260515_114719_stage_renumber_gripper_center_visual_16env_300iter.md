@@ -5,7 +5,7 @@
 - timestamp: 2026-05-15T11:53:28
 - checkpoint: `model_299.pt`
 - checkpoint path: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-15_11-47-19/model_299.pt`
-- plot snapshot: `/home/spark-robotics/work/robotarm/mt4_isaac_lab_task/logs/plots/20260515_114719_stage_renumber_gripper_center_visual_16env_300iter`
+- plot snapshot: `/home/spark-robotics/work/robotarm/robotarm_student/logs/plots/20260515_114719_stage_renumber_gripper_center_visual_16env_300iter`
 - reward profile: `stage_renumber_gripper_center`
 - notes: Stage 2 uses the midpoint between gripper pads as the pregrasp point. Stage1 alignment is high and gripper-center pregrasp distance improved, but final insertion success remains low.
 

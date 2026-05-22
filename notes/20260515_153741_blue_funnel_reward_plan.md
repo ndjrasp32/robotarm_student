@@ -58,7 +58,7 @@
 먼저 긴 학습을 다음 명령으로 진행한다.
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_blue_funnel_128_800.sh --seed 42
+~/work/robotarm/robotarm_student/scripts/train_stage4_blue_funnel_128_800.sh --seed 42
 ```
 
 결과가 좋아지면 그 checkpoint에서 `step_radius=0.035`, `hold_steps=4`로 이어서 학습하고, 이후 `0.018`, `8 frames`로 엄격화한다.

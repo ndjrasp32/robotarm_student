@@ -46,10 +46,10 @@ Codex 분석:
 ## 다음 검증 순서
 
 ```bash
-~/work/robotarm/mt4_isaac_lab_task/scripts/collect_stage4_safe_entry_states.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_smooth_blue_funnel_128_300.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-DEMO_SECONDS=120 ~/work/robotarm/mt4_isaac_lab_task/scripts/play_stage4_smooth_blue_funnel_best.sh
+~/work/robotarm/robotarm_student/scripts/collect_stage4_safe_entry_states.sh
+~/work/robotarm/robotarm_student/scripts/train_stage4_smooth_blue_funnel_128_300.sh
+~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+DEMO_SECONDS=120 ~/work/robotarm/robotarm_student/scripts/play_stage4_smooth_blue_funnel_best.sh
 ```
 
 ## 기대 관찰
@@ -70,9 +70,9 @@ DEMO_SECONDS=120 ~/work/robotarm/mt4_isaac_lab_task/scripts/play_stage4_smooth_b
 실행:
 
 ```bash
-MT4_MAX_ITERATIONS=80 ~/work/robotarm/mt4_isaac_lab_task/scripts/train_stage4_smooth_blue_funnel_128_300.sh
-MT4_SKIP_PLOT_SNAPSHOT=1 ~/work/robotarm/mt4_isaac_lab_task/scripts/plot_and_select_best.sh
-~/work/robotarm/mt4_isaac_lab_task/scripts/record_experiment_result.sh --run-label safe_stage4_entry_smoke_seed42 --seed 42 --num-envs 128 --max-iterations 80
+MT4_MAX_ITERATIONS=80 ~/work/robotarm/robotarm_student/scripts/train_stage4_smooth_blue_funnel_128_300.sh
+MT4_SKIP_PLOT_SNAPSHOT=1 ~/work/robotarm/robotarm_student/scripts/plot_and_select_best.sh
+~/work/robotarm/robotarm_student/scripts/record_experiment_result.sh --run-label safe_stage4_entry_smoke_seed42 --seed 42 --num-envs 128 --max-iterations 80
 ```
 
 결과 요약:
