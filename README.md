@@ -1,16 +1,12 @@
 # robotarm_student
 
-학생/실습용 WLKATA MT4 IsaacLab 강화학습 repo입니다.
+## 한국어
 
-이 저장소는 MT4 기반 reach, pregrasp, insertion curriculum과 학습 결과 기록을 수업/반복 실습 기준으로 관리합니다.
-실제 기기 제어와 하드웨어 전이 판단은 별도 안전 게이트를 통과한 뒤 `robotarm_mt4` 기준과 맞춰 진행합니다.
+`robotarm_student`는 학생/실습용 WLKATA MT4 IsaacLab 강화학습 저장소입니다.
 
-## 오늘부터 보는 기준
+이 저장소는 MT4 기반 staged reach, pregrasp, insertion curriculum과 실험 기록을 수업과 반복 실습 기준으로 관리합니다. 실제 MT4 asset 검증, 하드웨어 매핑, 실제 기기 이식 판단은 `robotarm_mt4`에서 관리하고, 이 저장소에서는 학생이 따라갈 수 있는 강화학습 흐름과 실험 archive를 유지합니다.
 
-- 시작 문서: `docs/CURRENT_BASELINE.md`
-- 현재 목표: 학생이 따라갈 수 있는 MT4 staged curriculum과 Mars twin 기준선 정리
-- 현재 우선순위: 하드웨어 안전 검증보다 강화학습을 앞세우지 않는다.
-- 과거 `notes/`와 `experiments/`는 참고 archive로 둔다. 새 기준 판단은 README와 `docs/CURRENT_BASELINE.md`를 우선한다.
+### 오늘부터 보는 기준
 
 매일 시작할 때는 이 순서만 봅니다.
 
@@ -18,26 +14,64 @@
 2. `README.md`
 3. `notes/`와 `experiments/`는 기준 문서에 링크된 항목만 필요할 때 확인
 
-새 문서는 늘리지 않는 것을 기본값으로 둡니다. 실험 결과는 `experiments/`에 한 건으로 남기고, 기준이 바뀐 경우에만 `docs/CURRENT_BASELINE.md`로 승격합니다.
+현재 기준은 Mars rover MT4 manipulation plan에서 다시 시작합니다. 첫 실용 검증 대상은 `push` 또는 `pull`입니다. 이 두 미션은 완전한 grasp 모델에 의존하기 전에 동적 물체 접촉과 reset 동작을 먼저 확인할 수 있기 때문입니다.
 
-## 역할
+### 리셋 이유
 
-- 실제 MT4 asset 기반 시뮬레이션 및 정책 학습
-- joint/action mapping과 hardware transfer 전 단계의 실습 기록 관리
-- staged reach/pregrasp/insertion curriculum 실험 기록 관리
+2026-05-22 기준으로 작업 기준을 리셋했습니다. 이전 상태에서는 날짜별 노트와 실험 기록이 너무 많아졌고, GitHub 저장소 이름도 `robotarm_student`와 `robotarm_mt4`로 정리되었으며, 학생용 curriculum과 실제 하드웨어 전이 책임이 한 흐름 안에 섞여 있었습니다. 이제 이 저장소는 학생용 MT4 curriculum baseline으로만 봅니다. 오래된 `notes/`, `experiments/`, `logs/`는 삭제하지 않고 archive로 유지합니다.
 
-## 주요 위치
+### 주요 위치
 
 - IsaacLab task: `source/mt4_reach_direct`
+- Mars twin viewer: `scripts/view_mars_twin.sh`
+- two-finger asset 생성: `scripts/create_two_finger_asset.sh`
 - 실행 스크립트: `scripts/`
 - 실험 기록: `experiments/`
-- 작업 노트: `notes/`
-- 실제 기기 관련 자료: `hardware/`
+- 작업 노트 archive: `notes/`
+- 실제 기기 관련 보조 자료: `hardware/`
 
-## 문서 운영 규칙
+### 문서 운영 규칙
 
-- 새로 시작할 때는 먼저 `docs/CURRENT_BASELINE.md`를 갱신한다.
-- 일회성 판단/실험 로그는 `notes/YYYYMMDD_*.md` 또는 `experiments/YYYYMMDD_*.md`에 남긴다.
-- 오래된 실험 문서는 삭제하지 않고 archive로 유지한다.
-- README에는 현재 기준과 진입점만 둔다.
-- 오늘의 작업 기준은 README와 `docs/CURRENT_BASELINE.md` 두 파일만으로 판단한다.
+- 새 문서는 늘리지 않는 것을 기본값으로 둡니다.
+- routine command output이나 임시 plot은 새 노트로 만들지 않습니다.
+- 실제 학습 run 또는 설계 결정이 바뀐 경우에만 dated note나 experiment record를 하나 남깁니다.
+- 기준이 바뀐 경우에만 `docs/CURRENT_BASELINE.md`로 승격합니다.
+- 실제 로봇 motion은 `robotarm_mt4`의 safety gate를 통과하기 전까지 이 저장소의 기본 작업으로 보지 않습니다.
+
+## English
+
+`robotarm_student` is the student-facing WLKATA MT4 IsaacLab reinforcement-learning repository.
+
+This repository manages MT4 staged reach, pregrasp, insertion curriculum work and experiment records for classroom use and repeatable practice. Real MT4 asset validation, hardware mapping, and hardware-transfer decisions belong in `robotarm_mt4`. This repository keeps the student learning path and experiment archive.
+
+### Daily Starting Point
+
+Start each day in this order:
+
+1. `docs/CURRENT_BASELINE.md`
+2. `README.md`
+3. Open `notes/` and `experiments/` only when the baseline links to a specific entry
+
+The active baseline restarts from the Mars rover MT4 manipulation plan. The first practical validation target should be `push` or `pull`, because those missions can validate dynamic-object contact and reset behavior before relying on a complete grasp model.
+
+### Reset Rationale
+
+The working baseline was reset on 2026-05-22. The previous state had too many daily notes and experiment records, the GitHub repositories had been renamed into `robotarm_student` and `robotarm_mt4`, and student curriculum work was mixed with hardware-transfer responsibilities. From now on, this repository is the student-facing MT4 curriculum baseline. Older `notes/`, `experiments/`, and `logs/` remain as archive.
+
+### Important Paths
+
+- IsaacLab task: `source/mt4_reach_direct`
+- Mars twin viewer: `scripts/view_mars_twin.sh`
+- two-finger asset generation: `scripts/create_two_finger_asset.sh`
+- runnable scripts: `scripts/`
+- experiment records: `experiments/`
+- work-note archive: `notes/`
+- real-device support material: `hardware/`
+
+### Documentation Policy
+
+- Do not create new documents by default.
+- Do not turn routine command output or temporary plots into new notes.
+- Add one dated note or experiment record only when a real training run or design decision changes.
+- Promote only baseline-changing conclusions into `docs/CURRENT_BASELINE.md`.
+- Real robot motion is not part of the default workflow here until the safety gate in `robotarm_mt4` is satisfied.
