@@ -42,3 +42,8 @@ class MT4ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
+
+
+@configclass
+class MT4CoordinatePPORunnerCfg(MT4ReachPPORunnerCfg):
+    experiment_name = "mt4_coordinate_curriculum_direct"

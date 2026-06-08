@@ -23,6 +23,10 @@ Date: 2026-05-22 KST
 
 - 참고 계획: `notes/20260521_mars_rover_mt4_rl_plan.md`
 - active task package: `source/mt4_reach_direct`
+- coordinate workspace-entry warm-up: `Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0`
+- coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
+- coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
+- coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger simplified asset 생성: `scripts/create_two_finger_asset.sh`
 
@@ -35,6 +39,14 @@ Date: 2026-05-22 KST
 - `pull`
 
 첫 실용 검증 대상은 `push` 또는 `pull`입니다. 두 미션은 완전한 grasp 모델에 의존하기 전에 동적 물체 접촉과 reset 동작을 먼저 증명할 수 있습니다.
+
+추가 curriculum은 로봇팔 전면 작업공간을 두 대의 고정 가상 카메라가 본 정규화 좌표로 학습합니다.
+
+0. Stage 0: 홈 자세에서 카메라 가시 작업공간 안으로 진입하는 warm-up을 학습한다.
+1. Stage 1: 전면 카메라 평면을 3x3 영역으로 나눠 1-9번을 부여하고, 영역 안에 진입하면 성공으로 보고 홈 자세 reset 뒤 다음 번호로 넘어간다.
+2. Stage 2: 같은 stereo coordinate 관측으로 기존 target sphere reach를 학습한다.
+
+Stage 1 검증은 `scripts/view_coordinate_curriculum.sh --stage plane`로 먼저 수행합니다. marker와 콘솔 로그가 1번부터 9번까지 순차적으로 넘어가는지 확인하고, 이 결과가 반복 가능해진 뒤에만 `robotarm_mt4` 실제 기기 이식 후보로 올립니다.
 
 ### 오늘의 운영 규칙
 
@@ -100,6 +112,10 @@ The active direction restarts from the Mars rover MT4 manipulation plan.
 
 - reference plan: `notes/20260521_mars_rover_mt4_rl_plan.md`
 - active task package: `source/mt4_reach_direct`
+- coordinate workspace-entry warm-up: `Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0`
+- coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
+- coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
+- coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger simplified asset generation: `scripts/create_two_finger_asset.sh`
 
@@ -112,6 +128,14 @@ The missions are split into:
 - `pull`
 
 The first practical validation target should be `push` or `pull`, because those missions can prove dynamic-object contact and reset behavior before relying on a complete grasp model.
+
+The additional curriculum learns the front robot workspace through normalized observations from two fixed virtual cameras.
+
+0. Stage 0 learns home-to-camera-visible-workspace entry as a warm-up.
+1. Stage 1 splits the front camera plane into 3x3 regions, numbers them 1-9, treats region entry as success, resets home, then advances to the next number.
+2. Stage 2 reuses the same stereo coordinate observation for target-sphere reach.
+
+Validate Stage 1 first with `scripts/view_coordinate_curriculum.sh --stage plane`; the marker and console log should advance from region 1 through 9 in order. Keep this validation in `robotarm_student` and consider `robotarm_mt4` transfer only after the student simulation result is repeatable.
 
 ### Today's Operating Rule
 

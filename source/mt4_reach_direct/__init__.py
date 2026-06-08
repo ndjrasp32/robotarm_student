@@ -9,6 +9,12 @@ from .mt4_mars_twin_env import (
     MT4MarsTwinPushEnvCfg,
     MT4MarsTwinStackEnvCfg,
 )
+from .mt4_coordinate_curriculum_env import (
+    MT4CoordinateCurriculumEnv,
+    MT4CoordinatePlaneEnvCfg,
+    MT4CoordinateSphereEnvCfg,
+    MT4CoordinateWorkspaceEntryEnvCfg,
+)
 from . import agents
 
 gym.register(
@@ -37,5 +43,22 @@ for task_id, cfg_cls in _MARS_TWIN_TASKS.items():
         kwargs={
             "env_cfg_entry_point": cfg_cls,
             "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:MT4ReachPPORunnerCfg",
+        },
+    )
+
+_COORDINATE_CURRICULUM_TASKS = {
+    "Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0": MT4CoordinateWorkspaceEntryEnvCfg,
+    "Isaac-MT4-Coordinate-Plane-Direct-v0": MT4CoordinatePlaneEnvCfg,
+    "Isaac-MT4-Coordinate-Sphere-Direct-v0": MT4CoordinateSphereEnvCfg,
+}
+
+for task_id, cfg_cls in _COORDINATE_CURRICULUM_TASKS.items():
+    gym.register(
+        id=task_id,
+        entry_point=f"{__name__}.mt4_coordinate_curriculum_env:MT4CoordinateCurriculumEnv",
+        disable_env_checker=True,
+        kwargs={
+            "env_cfg_entry_point": cfg_cls,
+            "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:MT4CoordinatePPORunnerCfg",
         },
     )
