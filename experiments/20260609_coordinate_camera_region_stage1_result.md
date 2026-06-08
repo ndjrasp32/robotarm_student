@@ -223,3 +223,37 @@ The next useful revision is not another reward-only tweak. The task needs a bett
 1. Reset stage 1 from a known camera-visible pregrasp/workspace-entry state instead of always from home.
 2. Train the 9 camera-plane cells from that stable state.
 3. Only after strict `camera_region_entry_rate` becomes nonzero and stable, add the home-to-cell transition back in.
+
+### Full 9-Cell Stage 1 Run After Commit
+
+- Command: `MT4_MAX_ITERATIONS=500 scripts/train_coordinate_stage1_plane_128_500.sh`
+- Run directory: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_coordinate_curriculum_direct/2026-06-09_07-40-41`
+- Envs: 128
+- Iterations: 500
+- Seed: 42
+- Final checkpoint: `model_499.pt`
+- Training time: 249.24 seconds
+
+Final metrics:
+
+- `success_rate`: 0.0657
+- `camera_region_entry_rate`: 0.0000
+- `mean_camera_region_error`: 2.1750
+- `mean_distance`: 0.3319
+- `inside_workspace_rate`: 0.0000
+- `mean_workspace_entry_error`: 0.2361
+- `target_stereo_visible_rate`: 1.0000
+- `gripper_stereo_visible_rate`: 0.1514
+- Region numbers covered: 1 to 9
+
+Analysis:
+
+This run confirms that the 9-cell reduction alone does not solve the coordinate-recognition stage. The relaxed success signal reached about 6.6%, but the strict same-camera-cell metric stayed at 0%, and the arm never entered the configured workspace volume. The policy is exploiting the loose projection-radius success and sparse gripper visibility instead of learning physical region entry.
+
+Do not promote this checkpoint to `robotarm_mt4`.
+
+Next revision:
+
+1. Gate Stage 1 success with workspace entry, not stereo visibility alone.
+2. Make the Stage 0 workspace-entry checkpoint useful before Stage 1, either by resuming from it or by starting Stage 1 from reset states closer to the workspace.
+3. Tighten the relaxed camera success radius after workspace entry is nonzero; current `1.35` is too loose and allows non-regional success.
