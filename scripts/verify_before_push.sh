@@ -50,9 +50,12 @@ bash -n scripts/train_128_1000.sh \
   scripts/create_two_finger_asset.sh \
   scripts/view_mars_twin.sh \
   scripts/view_coordinate_curriculum.sh \
+  scripts/report_coordinate_curriculum_latest.sh \
   scripts/train_coordinate_stage0_workspace_entry_128_300.sh \
   scripts/train_coordinate_stage1_plane_128_500.sh \
+  scripts/train_coordinate_stage1_plane_128_1500_video.sh \
   scripts/train_coordinate_stage2_sphere_128_800.sh \
+  scripts/play_coordinate_stage1_best_video.sh \
   scripts/verify_before_push.sh
 
 echo "[INFO] Checking Python syntax..."
@@ -64,6 +67,7 @@ echo "[INFO] Checking Python syntax..."
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/tools/view_mt4_mars_twin.py"
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/tools/view_mt4_coordinate_curriculum.py"
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/tools/train_mt4_coordinate_curriculum.py"
+"${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/tools/report_mt4_coordinate_curriculum.py"
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/source/mt4_reach_direct/mt4_reach_env.py"
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/source/mt4_reach_direct/mt4_mars_twin_env.py"
 "${ISAACLAB_DIR}/isaaclab.sh" -p -m py_compile "${PROJECT_DIR}/source/mt4_reach_direct/mt4_coordinate_curriculum_env.py"
