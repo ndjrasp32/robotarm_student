@@ -112,7 +112,10 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     plane_success_radius = 0.075
     workspace_entry_success_radius = 0.065
     camera_region_success_radius = 0.80
+    center_success_radius = 0.030
     region_success_margin_fraction = 0.20
+    master_regions_sequentially = False
+    region_mastery_successes = 5
     camera_alignment_success = 0.95
     workspace_center = (0.27, 0.0, 0.14)
     workspace_size = (0.18, 0.22, 0.16)
@@ -154,7 +157,10 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
 class MT4CoordinatePlaneEnvCfg(MT4CoordinateCurriculumEnvCfg):
     curriculum_stage = "plane_localization"
     front_face_region_targets = True
+    master_regions_sequentially = True
+    region_mastery_successes = 5
     camera_region_success_radius = 1.35
+    center_success_radius = 0.030
     reach_weight = 5.0
     plane_weight = 3.0
     reach_exp_scale = 18.0
@@ -227,6 +233,11 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.regions_per_face = self.region_cols * self.region_rows
         self.total_regions = self.region_cols * self.region_rows * self.region_depth
         self.next_region_id = 0
+        self.active_region_id = 0
+        self.region_success_counts = torch.zeros((self.total_regions,), dtype=torch.long, device=self.device)
+        self.region_best_episode_reward = torch.full((self.total_regions,), -float("inf"), device=self.device)
+        self.region_mastered = torch.zeros((self.total_regions,), dtype=torch.bool, device=self.device)
+        self.region_mastery_snapshot_writes = 0
 
         self.target_pos = torch.zeros((self.num_envs, 3), device=self.device)
         self.face_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
@@ -247,6 +258,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.gripper_stereo_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
         self.gripper_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
+        self.episode_rewards = torch.zeros((self.num_envs,), device=self.device)
 
         self.target_markers = VisualizationMarkers(self.cfg.target_marker_cfg)
         self.success_markers = VisualizationMarkers(self.cfg.success_marker_cfg)
@@ -325,11 +337,13 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         joint_velocity_penalty = torch.sum(joint_vel * joint_vel, dim=-1)
 
         if self.cfg.front_face_region_targets:
-            return (
+            center_reward = torch.exp(-1200.0 * self.distance * self.distance)
+            rewards = (
                 -4.0 * self.distance
                 -3.0 * self.plane_error
                 -1.2 * self.camera_alignment_error
                 -2.0 * self.workspace_entry_error
+                + 4.0 * center_reward
                 + 8.0 * self.in_target_region.float()
                 + 3.0 * self.inside_workspace.float()
                 + 0.5 * stereo_visible.float()
@@ -338,8 +352,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
                 - self.cfg.joint_velocity_penalty_weight * joint_velocity_penalty
                 - self.cfg.time_penalty_weight
             )
+            self.episode_rewards += rewards.detach()
+            return rewards
 
-        return (
+        rewards = (
             self.cfg.reach_weight * reach_reward
             + self.cfg.plane_weight * plane_reward
             + self.cfg.region_center_weight * region_center_reward
@@ -353,11 +369,14 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             - self.cfg.joint_velocity_penalty_weight * joint_velocity_penalty
             - self.cfg.time_penalty_weight
         )
+        self.episode_rewards += rewards.detach()
+        return rewards
 
     def _get_dones(self):
         self._compute_intermediate_values()
 
         success = self._success()
+        self._update_region_mastery(success)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
         prefix = f"coordinate_curriculum/{self.cfg.curriculum_stage}"
@@ -375,7 +394,26 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             f"{prefix}_mean_region_number": (self.region_ids.float() + 1.0).mean(),
             f"{prefix}_min_region_number": (self.region_ids.float() + 1.0).min(),
             f"{prefix}_max_region_number": (self.region_ids.float() + 1.0).max(),
+            f"{prefix}_center_3cm_rate": (self.distance < self.cfg.center_success_radius).float().mean(),
+            f"{prefix}_strict_region_center_success_rate": (
+                success.float() if self.cfg.curriculum_stage == "plane_localization" else torch.zeros_like(success.float())
+            ).mean(),
+            f"{prefix}_active_region_number": torch.tensor(float(self.active_region_id + 1), device=self.device),
+            f"{prefix}_mastered_region_count": self.region_mastered.float().sum(),
         }
+        for region_id in range(self.total_regions):
+            region_mask = self.region_ids == region_id
+            region_count = region_mask.float().sum().clamp(min=1.0)
+            region_success = (success.float() * region_mask.float()).sum() / region_count
+            best_reward = self.region_best_episode_reward[region_id]
+            if not torch.isfinite(best_reward):
+                best_reward = torch.tensor(0.0, device=self.device)
+            log_data[f"{prefix}_region_{region_id + 1:02d}_batch_success_rate"] = region_success
+            log_data[f"{prefix}_region_{region_id + 1:02d}_success_count"] = self.region_success_counts[
+                region_id
+            ].float()
+            log_data[f"{prefix}_region_{region_id + 1:02d}_best_episode_reward"] = best_reward
+            log_data[f"{prefix}_region_{region_id + 1:02d}_mastered"] = self.region_mastered[region_id].float()
         for face_id, face_name in enumerate(("x_min", "x_max", "y_min", "y_max", "z_min", "z_max")):
             face_mask = self.face_ids == face_id
             face_count = face_mask.float().sum().clamp(min=1.0)
@@ -400,6 +438,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         joint_vel[:, self.joint_ids] = 0.0
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
+        self.episode_rewards[env_ids] = 0.0
         self._sample_targets(env_ids)
 
     def _sample_targets(self, env_ids: torch.Tensor):
@@ -442,6 +481,8 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self._update_markers()
 
     def _next_region_ids(self, n: int) -> torch.Tensor:
+        if self._uses_region_mastery():
+            return torch.full((n,), self.active_region_id, dtype=torch.long, device=self.device)
         if self.cfg.sequential_region_targets:
             region_ids = (torch.arange(n, device=self.device) + self.next_region_id) % self.total_regions
             self.next_region_id = (self.next_region_id + n) % self.total_regions
@@ -740,11 +781,69 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         if self.cfg.curriculum_stage == "workspace_entry":
             return (self.workspace_entry_error < self.cfg.workspace_entry_success_radius) & self.gripper_stereo_visible
         if self.cfg.curriculum_stage == "plane_localization":
-            camera_region_reached = self.in_target_region | (
-                self.camera_alignment_error < self.cfg.camera_region_success_radius
-            )
-            return camera_region_reached & stereo_visible
+            center_reached = self.distance < self.cfg.center_success_radius
+            return self.in_target_region & center_reached & stereo_visible
         return (self.distance < self.cfg.success_radius) & stereo_visible
+
+    def _uses_region_mastery(self) -> bool:
+        return (
+            bool(self.cfg.master_regions_sequentially)
+            and self.cfg.curriculum_stage == "plane_localization"
+            and self.cfg.front_face_region_targets
+        )
+
+    def _update_region_mastery(self, success: torch.Tensor):
+        if not self._uses_region_mastery() or not torch.any(success):
+            return
+
+        success_region_ids = self.region_ids[success].detach()
+        success_rewards = self.episode_rewards[success].detach()
+        for region_id_tensor in torch.unique(success_region_ids):
+            region_id = int(region_id_tensor.item())
+            region_mask = success_region_ids == region_id
+            self.region_success_counts[region_id] += int(region_mask.sum().item())
+            best_reward = torch.max(success_rewards[region_mask])
+            if best_reward > self.region_best_episode_reward[region_id]:
+                self.region_best_episode_reward[region_id] = best_reward
+
+        mastery_target = max(int(self.cfg.region_mastery_successes), 1)
+        while (
+            self.active_region_id < self.total_regions
+            and int(self.region_success_counts[self.active_region_id].item()) >= mastery_target
+        ):
+            self.region_mastered[self.active_region_id] = True
+            self.active_region_id += 1
+
+        if self.active_region_id >= self.total_regions:
+            self.active_region_id = self.total_regions - 1
+
+        self._write_region_mastery_snapshot()
+
+    def _write_region_mastery_snapshot(self):
+        log_dir = getattr(self.cfg, "log_dir", None)
+        if not log_dir:
+            return
+
+        out_path = Path(log_dir) / "region_mastery.csv"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        lines = ["region_number,success_count,best_episode_reward,mastered,active\n"]
+        for region_id in range(self.total_regions):
+            best_reward = self.region_best_episode_reward[region_id]
+            best_value = "" if not torch.isfinite(best_reward) else f"{float(best_reward.item()):.6f}"
+            lines.append(
+                ",".join(
+                    [
+                        str(region_id + 1),
+                        str(int(self.region_success_counts[region_id].item())),
+                        best_value,
+                        "1" if bool(self.region_mastered[region_id].item()) else "0",
+                        "1" if region_id == self.active_region_id else "0",
+                    ]
+                )
+                + "\n"
+            )
+        out_path.write_text("".join(lines), encoding="utf-8")
+        self.region_mastery_snapshot_writes += 1
 
     def _update_markers(self, success: torch.Tensor | None = None):
         if not hasattr(self, "target_markers"):

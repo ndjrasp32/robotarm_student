@@ -26,6 +26,7 @@
 - coordinate workspace-entry warm-up: `scripts/train_coordinate_stage0_workspace_entry_128_300.sh`
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
+- coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger asset 생성: `scripts/create_two_finger_asset.sh`
@@ -61,7 +62,7 @@ The active baseline restarts from the Mars rover MT4 manipulation plan. The firs
 The coordinate-plane curriculum is a student-side simulation path for learning the camera-frame front workspace before object approach:
 
 0. `Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0`: learn to move from home into the camera-visible workspace.
-1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, treat region entry as success, reset home, then advance to the next number.
+1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, require same-region entry plus center approach within 3 cm, reset home, then advance after enough strict successes.
 2. `Isaac-MT4-Coordinate-Sphere-Direct-v0`: reuse the same stereo coordinate observation and train the existing target-sphere reach behavior after the 9-region coordinate stage is stable.
 
 Coordinate curriculum training uses `tools/train_mt4_coordinate_curriculum.py` so the task is registered from `robotarm_student/source` instead of the hardware-transfer repo or stale IsaacLab copies.
@@ -78,6 +79,7 @@ The working baseline was reset on 2026-05-22. The previous state had too many da
 - coordinate workspace-entry warm-up: `scripts/train_coordinate_stage0_workspace_entry_128_300.sh`
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
+- coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger asset generation: `scripts/create_two_finger_asset.sh`
