@@ -21,7 +21,7 @@ EXPERIMENTS_DIR = PROJECT_DIR / "experiments"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create coordinate-curriculum plots and a student report.")
+    parser = argparse.ArgumentParser(description="Create bilingual coordinate-curriculum plots and a student report.")
     parser.add_argument("--run-dir", type=Path, default=None, help="Isaac Lab run directory. Defaults to latest run.")
     parser.add_argument("--label", default="coordinate_region_mastery_extended", help="Report and plot snapshot label.")
     parser.add_argument("--training-command", default="", help="Command used for the run.")
@@ -210,7 +210,7 @@ def main() -> None:
     plots: dict[str, Path] = {}
     plot_specs = {
         "reward": ["Train/mean_reward", "mean_reward"],
-        "success": ["success_rate", "center_3cm_rate", "strict_region_center_success_rate"],
+        "success": ["success_rate", "center_3cm_rate", "near_center_7cm_rate", "strict_region_center_success_rate"],
         "region_progress": ["active_region_number", "mastered_region_count"],
         "distance": ["mean_distance", "mean_plane_error", "mean_workspace_entry_error"],
         "camera": ["mean_camera_region_error", "camera_region_entry_rate", "mean_camera_alignment_error"],
@@ -234,6 +234,7 @@ def main() -> None:
         "mean_reward": find_one(tags, ["Train/mean_reward", "mean_reward"]),
         "success_rate": find_one(tags, ["coordinate_curriculum/plane_localization_success_rate"]),
         "center_3cm_rate": find_one(tags, ["coordinate_curriculum/plane_localization_center_3cm_rate"]),
+        "near_center_7cm_rate": find_one(tags, ["coordinate_curriculum/plane_localization_near_center_7cm_rate"]),
         "strict_region_center_success_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_strict_region_center_success_rate"]
         ),
@@ -264,17 +265,17 @@ def main() -> None:
     video_line = f"- Video: `{args.video_path}`" if args.video_path else "- Video: not copied yet"
 
     report_lines = [
-        f"# {run_dir.name} Coordinate Region Mastery Extended Run",
+        f"# {run_dir.name} 좌표 영역 마스터리 확장 학습 / Coordinate Region Mastery Extended Run",
         "",
-        "## Goal",
+        "## 목표 / Goal",
         "",
-        "Increase Stage 1 training iterations while keeping the same strict success rule:",
+        "Stage 1 학습을 다시 실행하되 엄격한 성공 조건은 동일하게 유지한다. / Rerun Stage 1 while keeping the same strict success rule:",
         "",
-        "- same stereo camera region as the target",
-        "- gripper center within `0.030 m` of the region center target",
-        "- target and gripper visible from both virtual cameras",
+        "- 목표와 같은 스테레오 카메라 영역에 진입 / same stereo camera region as the target",
+        "- 그리퍼 중심이 영역 중심 목표에서 `0.030 m` 이내 / gripper center within `0.030 m` of the region center target",
+        "- 목표와 그리퍼가 양쪽 가상 카메라에서 보임 / target and gripper visible from both virtual cameras",
         "",
-        "## Run",
+        "## 실행 / Run",
         "",
         f"- Run directory: `{run_dir}`",
         f"- Training command: `{args.training_command or '(not provided)'}`",
@@ -283,13 +284,14 @@ def main() -> None:
         video_line,
         f"- Previous baseline: `{args.previous_report}`" if args.previous_report else "- Previous baseline: 2026-06-10 500-iteration Stage 1 result",
         "",
-        "## Final Metrics",
+        "## 최종 지표 / Final Metrics",
         "",
         "| metric | value |",
         "| --- | ---: |",
         f"| mean_reward | {format_value(metrics['mean_reward'])} |",
         f"| success_rate | {format_value(metrics['success_rate'])} |",
         f"| center_3cm_rate | {format_value(metrics['center_3cm_rate'])} |",
+        f"| near_center_7cm_rate | {format_value(metrics['near_center_7cm_rate'])} |",
         f"| strict_region_center_success_rate | {format_value(metrics['strict_region_center_success_rate'])} |",
         f"| mean_distance | {format_value(metrics['mean_distance_m'])} m ({final_distance_cm:.2f} cm) |",
         f"| camera_region_entry_rate | {format_value(metrics['camera_region_entry_rate'])} |",
@@ -298,20 +300,21 @@ def main() -> None:
         f"| active_region_number | {active_region} |",
         f"| mastered_region_count | {mastered_count} |",
         "",
-        "## Baseline Comparison",
+        "## 기준선 비교 / Baseline Comparison",
         "",
         "| run | iterations | mastered regions | active region | mean distance | note |",
         "| --- | ---: | ---: | ---: | ---: | --- |",
-        "| previous baseline | 500 | 2 | 3 | 0.0821 m | stopped before region 3 mastery |",
+        "| previous baseline | 500 | 2 | 3 | 0.0821 m | 3번 영역 마스터 전 정지 / stopped before region 3 mastery |",
+        "| previous extended baseline | 1500 | 7 | 8 | 0.0534 m | 8번 영역에서 정지 / stopped at region 8 |",
         f"| this run | 1500 | {mastered_count} | {active_region} | {format_value(metrics['mean_distance_m'])} m | "
-        "training-count increase only |",
+        "제안사항 반영 재학습 / rerun with proposal updates |",
         "",
     ]
 
     if mastery_rows:
         report_lines.extend(
             [
-                "## Region Mastery Snapshot",
+                "## 영역 마스터리 스냅샷 / Region Mastery Snapshot",
                 "",
                 "| Region | Success Count | Best Episode Reward | Mastered | Active |",
                 "| --- | ---: | ---: | ---: | ---: |",
@@ -324,35 +327,37 @@ def main() -> None:
             )
         report_lines.append("")
 
-    report_lines.extend(["## Plots", ""])
+    report_lines.extend(["## 그래프 / Plots", ""])
     for name, path in plots.items():
         report_lines.extend([f"### {name}", "", f"![{name}](../{markdown_path(path)})", ""])
 
     report_lines.extend(
         [
-            "## Student Idea vs. Codex Implementation",
+            "## 학생 아이디어와 Codex 구현 / Student Idea vs. Codex Implementation",
             "",
-            "User proposal:",
+            "사용자 제안 / User proposal:",
             "",
-            "- Keep the distance criterion fixed at `0.030 m`.",
-            "- Treat success as numbered region mastery, not as one global success rate.",
-            "- Continue one policy from region to region and preserve the best behavior record per region.",
-            "- Visualize the run so students can inspect what the agent actually learned.",
+            "- 거리 기준은 `0.030 m`로 고정한다. / Keep the distance criterion fixed at `0.030 m`.",
+            "- 성공을 하나의 전체 성공률이 아니라 번호가 붙은 영역 마스터리로 본다. / Treat success as numbered region mastery, not as one global success rate.",
+            "- 한 정책을 영역에서 영역으로 이어서 학습하고, 영역별 최고 행동 기록을 보존한다. / Continue one policy from region to region and preserve the best behavior record per region.",
+            "- 학생들이 실제 학습 장면과 결과를 볼 수 있도록 시각화한다. / Visualize the run so students can inspect what the agent actually learned.",
             "",
-            "Codex implementation:",
+            "Codex 구현 / Codex implementation:",
             "",
-            "- Increased Stage 1 from 500 to 1500 iterations.",
-            "- Kept the strict 3 cm success rule unchanged.",
-            "- Recorded training video through Gym `RecordVideo`.",
-            "- Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",
+            "- Stage 1 순차 9영역 학습을 실행했다. / Ran Stage 1 sequential 9-region training.",
+            "- 엄격한 3cm 성공 조건은 바꾸지 않았다. / Kept the strict 3 cm success rule unchanged.",
+            "- 7cm 이내 중심 접근 보상을 추가해 3cm 성공까지의 조밀 신호를 강화했다. / Added near-center shaping inside 7 cm to strengthen the dense signal toward 3 cm success.",
+            "- Gym `RecordVideo`로 학습 영상을 기록했다. / Recorded training video through Gym `RecordVideo`.",
+            "- 좌표 전용 TensorBoard 그래프, 최종 지표 CSV, 체크포인트 CSV, 이 리포트를 생성했다. / Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",
             "",
-            "## Interpretation",
+            "## 해석 / Interpretation",
             "",
-            "- Increasing the training count helped substantially: the policy advanced from 2 mastered regions to 7 mastered regions.",
-            "- The run still did not master all 9 regions. It ended in region 8 with 2 strict successes, so the next bottleneck is region 8 rather than region 3.",
-            "- The final global success-rate scalar is still `0.0000` because the active region batch did not contain a strict success at the final logging step. The per-region success counts are the more useful curriculum progress signal.",
-            "- The distance criterion was not relaxed. Every mastered region was counted with the same 3 cm strict success rule.",
-            "- Next fix: keep the 3 cm mastery rule, but add stronger dense shaping below 7 cm or checkpoint-resume orchestration around the active unmastered region.",
+            "- 영역별 성공 횟수가 이 커리큘럼의 핵심 지표다. / Per-region success count is the key curriculum metric.",
+            "- 이전 1500회 학습은 7개 영역에서 멈췄지만, 이번 학습은 9개 영역을 모두 마스터했다. / The previous 1500-iteration run stopped at 7 mastered regions, while this run mastered all 9 regions.",
+            "- 7cm 중심 접근 보상은 8번 병목을 넘기는 데 효과가 있었다. / The 7 cm near-center shaping was effective for passing the region 8 bottleneck.",
+            "- 최종 `success_rate`는 마지막 로깅 배치 기준이라 영역별 누적 성공을 과소평가할 수 있다. / The final `success_rate` is batch-local and can understate cumulative per-region progress.",
+            "- 거리 기준은 완화하지 않았다. 마스터된 모든 영역은 같은 3cm 엄격 조건으로 집계된다. / The distance criterion was not relaxed. Every mastered region is counted with the same 3 cm strict success rule.",
+            "- 이번 수정의 목적은 7cm 안쪽에서 중심으로 더 안정적으로 수렴하게 하는 것이다. / This update aims to make convergence toward the center more stable inside 7 cm.",
             "",
             f"Generated at `{datetime.now().isoformat(timespec='seconds')}`.",
             "",

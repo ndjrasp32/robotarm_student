@@ -142,6 +142,8 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     workspace_entry_exp_scale = 80.0
     region_center_exp_scale = 20.0
     region_entry_weight = 5.0
+    near_center_radius = 0.070
+    near_center_weight = 0.0
     workspace_entry_weight = 0.0
     camera_alignment_weight = 2.5
     camera_alignment_exp_scale = 5.0
@@ -168,6 +170,8 @@ class MT4CoordinatePlaneEnvCfg(MT4CoordinateCurriculumEnvCfg):
     workspace_entry_weight = 3.0
     region_center_exp_scale = 2.0
     region_entry_weight = 8.0
+    near_center_radius = 0.070
+    near_center_weight = 10.0
     camera_alignment_weight = 5.0
     camera_alignment_exp_scale = 2.0
     inside_workspace_weight = 3.0
@@ -338,6 +342,11 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
 
         if self.cfg.front_face_region_targets:
             center_reward = torch.exp(-1200.0 * self.distance * self.distance)
+            near_center_progress = (
+                (self.cfg.near_center_radius - self.distance)
+                / max(self.cfg.near_center_radius - self.cfg.center_success_radius, 1.0e-6)
+            ).clamp(0.0, 1.0)
+            near_center_reward = near_center_progress * near_center_progress * self.in_target_region.float()
             rewards = (
                 -4.0 * self.distance
                 -3.0 * self.plane_error
@@ -345,6 +354,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
                 -2.0 * self.workspace_entry_error
                 + 4.0 * center_reward
                 + 8.0 * self.in_target_region.float()
+                + self.cfg.near_center_weight * near_center_reward
                 + 3.0 * self.inside_workspace.float()
                 + 0.5 * stereo_visible.float()
                 + self.cfg.success_bonus_weight * success.float()
@@ -395,6 +405,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             f"{prefix}_min_region_number": (self.region_ids.float() + 1.0).min(),
             f"{prefix}_max_region_number": (self.region_ids.float() + 1.0).max(),
             f"{prefix}_center_3cm_rate": (self.distance < self.cfg.center_success_radius).float().mean(),
+            f"{prefix}_near_center_7cm_rate": (self.distance < self.cfg.near_center_radius).float().mean(),
             f"{prefix}_strict_region_center_success_rate": (
                 success.float() if self.cfg.curriculum_stage == "plane_localization" else torch.zeros_like(success.float())
             ).mean(),
