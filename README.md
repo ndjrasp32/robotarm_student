@@ -74,6 +74,8 @@ The coordinate-plane curriculum is a student-side simulation path for learning t
 
 The current region-matching baseline keeps robot-frame coordinates only for target generation and validation. Training infers the target region from the body left/right stereo observations and also receives a gripper-mounted camera projection for target tracking. New target-tracking runs use a stricter 1 cm success distance, add an overshoot penalty, and prefer approach from the robot side or from above.
 
+The latest 1 cm target-tracking rerun is recorded in `learning_journal/2026-06-10_three_camera_coordinate_baseline/20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md`. It mastered 9/9 regions with the 10-success gate, but the final logging batch still had `center_1cm_rate=0.0000`; the next student question is final-centimeter precision, not basic camera-region recognition.
+
 Coordinate curriculum training uses `tools/train_mt4_coordinate_curriculum.py` so the task is registered from `robotarm_student/source` instead of the hardware-transfer repo or stale IsaacLab copies.
 
 Use `scripts/view_coordinate_curriculum.sh --stage plane` to verify that the Stage 1 target marker advances through regions 1-9 in order. Keep this validation in `robotarm_student`; only transfer the approach to `robotarm_mt4` after the student simulation result is repeatable.

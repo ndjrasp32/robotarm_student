@@ -17,13 +17,14 @@
 3. [20260610_114129_plan_success10_video1min_demo_check.md](20260610_114129_plan_success10_video1min_demo_check.md)
 4. [20260610_130106_plan_target_tracking_rerun.md](20260610_130106_plan_target_tracking_rerun.md)
 5. [20260610_131608_plan_1cm_overshoot_approach_reward.md](20260610_131608_plan_1cm_overshoot_approach_reward.md)
+6. [20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md](20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md)
 
 ## Current Setup / 현재 설정
 
 | item | value |
 | --- | --- |
 | task / 태스크 | `Isaac-MT4-Coordinate-Plane-Direct-v0` |
-| training script / 학습 스크립트 | `scripts/train_coordinate_stage1_three_camera_baseline_128_1500_video.sh` |
+| training script / 학습 스크립트 | `scripts/train_coordinate_stage1_three_camera_target_tracking_128_1500_video.sh` |
 | body cameras / 몸체 카메라 | fixed left/right stereo projection |
 | gripper camera / 그리퍼 카메라 | target `u/v/depth/visible` projection from gripper frame |
 | policy observation / 정책 관측 | 54 values after target-tracking update |
@@ -49,6 +50,11 @@
 
 ## Evidence / 근거 자료
 
+- Latest run / 최신 실행: [20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md](20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md)
+- Latest report / 최신 리포트: [20260610_132926_three_camera_target_tracking_128env_1500iter_three_camera_target_tracking_1cm_stage1_1500iter.md](../../experiments/20260610_132926_three_camera_target_tracking_128env_1500iter_three_camera_target_tracking_1cm_stage1_1500iter.md)
+- Latest training video / 최신 학습 영상: [20260610_140823_train_three_camera_target_tracking_1cm_stage1_1500iter_2026-06-10_13-29-26_three_camera_target_tracking_128env_1500iter.mp4](../videos/20260610_140823_train_three_camera_target_tracking_1cm_stage1_1500iter_2026-06-10_13-29-26_three_camera_target_tracking_128env_1500iter.mp4)
+- Latest demo video / 최신 데모 영상: [20260610_141000_demo_three_camera_target_tracking_1cm_random_regions_1min.mp4](../videos/20260610_141000_demo_three_camera_target_tracking_1cm_random_regions_1min.mp4)
+- Latest demo sequence / 최신 데모 순서: [20260610_141000_demo_three_camera_target_tracking_1cm_random_regions_1min_sequence.csv](../videos/20260610_141000_demo_three_camera_target_tracking_1cm_random_regions_1min_sequence.csv)
 - Run record / 실행 기록: [20260610_111518_run_three_camera_coordinate_baseline_1500iter.md](20260610_111518_run_three_camera_coordinate_baseline_1500iter.md)
 - Plot / 그래프: [region mastery graph](artifacts/20260610_111518_review_three_camera_region_mastery_counts.png), [camera graph](artifacts/20260610_111518_review_three_camera_visibility_and_alignment.png), [success graph](artifacts/20260610_111518_review_three_camera_success_curve.png)
 - Video / 영상: [20260610_113358_train_three_camera_coordinate_baseline_stage1_1500iter_step36000.mp4](../videos/20260610_113358_train_three_camera_coordinate_baseline_stage1_1500iter_step36000.mp4)
@@ -57,5 +63,5 @@
 
 ## Next Step / 다음 단계
 
-- KR: 1cm 기준, overshoot 벌점, 접근 방향 보상을 넣은 Stage 1을 다시 학습하고 1분 학습 영상과 랜덤 데모 영상을 확인한다.
-- EN: Rerun Stage 1 with the 1 cm rule, overshoot penalty, and approach-direction reward, then review the 1-minute training and random demo videos.
+- KR: 재학습은 완료됐다. 다음 병목은 마지막 1cm 정밀 제어이므로, 목표 근처에서 속도를 낮추거나 멈추는 보상을 따로 확인한다.
+- EN: The rerun is complete. The next bottleneck is final 1 cm precision, so test slower final approach or a separate stop-near-target reward.
