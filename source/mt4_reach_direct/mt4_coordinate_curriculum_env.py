@@ -361,6 +361,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.gripper_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
         self.target_gripper_camera_features = torch.zeros((self.num_envs, 4), device=self.device)
         self.episode_rewards = torch.zeros((self.num_envs,), device=self.device)
+        self.success_latched = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
 
         self.target_markers = VisualizationMarkers(self.cfg.target_marker_cfg)
         self.success_markers = VisualizationMarkers(self.cfg.success_marker_cfg)
@@ -383,8 +384,19 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self.actions = actions.clamp(-1.0, 1.0)
-        self.joint_targets = self.joint_targets + self.cfg.action_scale * self.actions
-        self.joint_targets = torch.max(torch.min(self.joint_targets, self.joint_upper), self.joint_lower)
+        if torch.any(self.success_latched):
+            self.actions = torch.where(
+                self.success_latched.unsqueeze(-1),
+                torch.zeros_like(self.actions),
+                self.actions,
+            )
+        next_joint_targets = self.joint_targets + self.cfg.action_scale * self.actions
+        next_joint_targets = torch.max(torch.min(next_joint_targets, self.joint_upper), self.joint_lower)
+        self.joint_targets = torch.where(
+            self.success_latched.unsqueeze(-1),
+            self.joint_targets,
+            next_joint_targets,
+        )
 
     def _apply_action(self):
         self.robot.set_joint_position_target(self.joint_targets, joint_ids=self.joint_ids)
@@ -427,7 +439,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
     def _get_rewards(self):
         self._compute_intermediate_values()
 
-        success = self._success()
+        success = self._success() | self.success_latched
         reach_reward = torch.exp(-self.cfg.reach_exp_scale * self.distance * self.distance)
         plane_reward = torch.exp(-self.cfg.plane_exp_scale * self.plane_error * self.plane_error)
         region_center_reward = torch.exp(
@@ -554,8 +566,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
     def _get_dones(self):
         self._compute_intermediate_values()
 
-        success = self._success()
-        self._update_region_mastery(success)
+        raw_success = self._success()
+        new_success = self._latch_successes(raw_success)
+        success = raw_success | self.success_latched
+        self._update_region_mastery(new_success)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
         prefix = f"coordinate_curriculum/{self.cfg.curriculum_stage}"
@@ -563,7 +577,9 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         fine_center_rate = (self.distance < self.cfg.fine_center_radius).float().mean()
         near_center_rate = (self.distance < self.cfg.near_center_radius).float().mean()
         log_data = {
-            f"{prefix}_success_rate": success.float().mean(),
+            f"{prefix}_success_rate": raw_success.float().mean(),
+            f"{prefix}_new_success_rate": new_success.float().mean(),
+            f"{prefix}_success_hold_rate": self.success_latched.float().mean(),
             f"{prefix}_mean_distance": self.distance.mean(),
             f"{prefix}_mean_plane_error": self.plane_error.mean(),
             f"{prefix}_mean_camera_region_error": self.region_uv_error.mean(),
@@ -608,7 +624,9 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             f"{prefix}_fine_center_4cm_rate": fine_center_rate,
             f"{prefix}_near_center_7cm_rate": near_center_rate,
             f"{prefix}_strict_region_center_success_rate": (
-                success.float() if self.cfg.curriculum_stage == "plane_localization" else torch.zeros_like(success.float())
+                raw_success.float()
+                if self.cfg.curriculum_stage == "plane_localization"
+                else torch.zeros_like(raw_success.float())
             ).mean(),
             f"{prefix}_active_region_number": torch.tensor(float(self.active_region_id + 1), device=self.device),
             f"{prefix}_mastered_region_count": self.region_mastered.float().sum(),
@@ -616,7 +634,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         for region_id in range(self.total_regions):
             region_mask = self.region_ids == region_id
             region_count = region_mask.float().sum().clamp(min=1.0)
-            region_success = (success.float() * region_mask.float()).sum() / region_count
+            region_success = (raw_success.float() * region_mask.float()).sum() / region_count
             best_reward = self.region_best_episode_reward[region_id]
             if not torch.isfinite(best_reward):
                 best_reward = torch.tensor(0.0, device=self.device)
@@ -630,11 +648,13 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             face_mask = self.face_ids == face_id
             face_count = face_mask.float().sum().clamp(min=1.0)
             log_data[f"{prefix}_{face_name}_sample_rate"] = face_mask.float().mean()
-            log_data[f"{prefix}_{face_name}_success_rate"] = (success.float() * face_mask.float()).sum() / face_count
+            log_data[f"{prefix}_{face_name}_success_rate"] = (
+                raw_success.float() * face_mask.float()
+            ).sum() / face_count
         self.extras["log"] = log_data
 
         self._update_markers(success)
-        return success, time_out
+        return torch.zeros_like(success), time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if env_ids is None:
@@ -651,6 +671,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
         self.episode_rewards[env_ids] = 0.0
+        self.success_latched[env_ids] = False
         self._sample_targets(env_ids)
 
     def _sample_targets(self, env_ids: torch.Tensor):
@@ -1152,6 +1173,16 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             return self.in_target_region & center_reached & stereo_visible
         return (self.distance < self.cfg.success_radius) & stereo_visible
 
+    def _latch_successes(self, success: torch.Tensor) -> torch.Tensor:
+        new_success = success & ~self.success_latched
+        if torch.any(new_success):
+            env_ids = torch.nonzero(new_success, as_tuple=False).squeeze(-1)
+            joint_pos = self.robot.data.joint_pos[:, self.joint_ids]
+            self.joint_targets[env_ids] = joint_pos[env_ids].detach()
+            self.actions[env_ids] = 0.0
+        self.success_latched = self.success_latched | success
+        return new_success
+
     def _write_workspace_audit_snapshot(self):
         log_dir = getattr(self.cfg, "log_dir", None)
         if not log_dir or self.cfg.front_face_region_targets:
@@ -1252,8 +1283,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         target_pos_w = self.target_pos + self.scene.env_origins
         self.target_markers.visualize(target_pos_w)
         if success is None:
-            success_pos_w = target_pos_w
-        else:
-            success_pos_w = target_pos_w.clone()
-            success_pos_w[~success] = torch.tensor((0.0, 0.0, -10.0), device=self.device)
+            if hasattr(self, "success_latched"):
+                success = self.success_latched
+            else:
+                success = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        success_pos_w = target_pos_w.clone()
+        success_pos_w[~success] = torch.tensor((0.0, 0.0, -10.0), device=self.device)
         self.success_markers.visualize(success_pos_w)
