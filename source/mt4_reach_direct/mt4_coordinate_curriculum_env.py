@@ -204,6 +204,23 @@ class MT4CoordinatePlaneEnvCfg(MT4CoordinateCurriculumEnvCfg):
 
 
 @configclass
+class MT4CoordinateVolumeEnvCfg(MT4CoordinatePlaneEnvCfg):
+    front_face_region_targets = False
+    volume_region_shape = (3, 3, 3)
+    workspace_center = (0.30, 0.0, 0.21)
+    workspace_size = (0.12, 0.16, 0.12)
+    camera_look_at = (0.30, 0.0, 0.21)
+    episode_length_s = 7.0
+    plane_weight = 0.0
+    workspace_entry_weight = 2.0
+    region_entry_weight = 6.0
+    near_center_weight = 10.0
+    target_tracking_weight = 20.0
+    target_overshoot_penalty_weight = 45.0
+    preferred_approach_weight = 3.0
+
+
+@configclass
 class MT4CoordinateWorkspaceEntryEnvCfg(MT4CoordinateCurriculumEnvCfg):
     curriculum_stage = "workspace_entry"
     episode_length_s = 5.0
@@ -427,6 +444,25 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             self.episode_rewards += rewards.detach()
             return rewards
 
+        if self.cfg.curriculum_stage == "plane_localization":
+            center_reward = torch.exp(-self.cfg.precision_center_exp_scale * self.distance * self.distance)
+            near_center_progress = (
+                (self.cfg.near_center_radius - self.distance)
+                / max(self.cfg.near_center_radius - self.cfg.center_success_radius, 1.0e-6)
+            ).clamp(0.0, 1.0)
+            near_center_reward = near_center_progress * near_center_progress
+            preferred_approach_reward = torch.exp(
+                -self.cfg.preferred_approach_exp_scale
+                * self.preferred_approach_error
+                * self.preferred_approach_error
+            )
+            center_reward_weight = 4.0
+        else:
+            center_reward = torch.zeros_like(self.distance)
+            near_center_reward = torch.zeros_like(self.distance)
+            preferred_approach_reward = torch.zeros_like(self.distance)
+            center_reward_weight = 0.0
+
         rewards = (
             self.cfg.reach_weight * reach_reward
             + self.cfg.plane_weight * plane_reward
@@ -434,12 +470,16 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             + self.cfg.region_entry_weight * self.in_target_region.float()
             + self.cfg.workspace_entry_weight * workspace_entry_reward
             + self.cfg.target_tracking_weight * target_tracking_reward
+            + center_reward_weight * center_reward
+            + self.cfg.near_center_weight * near_center_reward
+            + self.cfg.preferred_approach_weight * preferred_approach_reward
             + self.cfg.camera_alignment_weight * camera_alignment_reward
             + self.cfg.gripper_camera_alignment_weight * gripper_camera_alignment_reward
             + self.cfg.inside_workspace_weight * self.inside_workspace.float()
             + self.cfg.stereo_visibility_weight * stereo_visible.float()
             + self.cfg.gripper_camera_visibility_weight * self.target_gripper_camera_visible.float()
             + self.cfg.success_bonus_weight * success.float()
+            - self.cfg.target_overshoot_penalty_weight * self.target_overshoot
             - self.cfg.action_penalty_weight * action_penalty
             - self.cfg.joint_velocity_penalty_weight * joint_velocity_penalty
             - self.cfg.time_penalty_weight
@@ -1033,7 +1073,6 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         return (
             bool(self.cfg.master_regions_sequentially)
             and self.cfg.curriculum_stage == "plane_localization"
-            and self.cfg.front_face_region_targets
         )
 
     def _update_region_mastery(self, success: torch.Tensor):

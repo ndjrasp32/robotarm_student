@@ -13,6 +13,7 @@ from .mt4_coordinate_curriculum_env import (
     MT4CoordinateCurriculumEnv,
     MT4CoordinatePlaneEnvCfg,
     MT4CoordinateSphereEnvCfg,
+    MT4CoordinateVolumeEnvCfg,
     MT4CoordinateWorkspaceEntryEnvCfg,
 )
 from . import agents
@@ -49,6 +50,7 @@ for task_id, cfg_cls in _MARS_TWIN_TASKS.items():
 _COORDINATE_CURRICULUM_TASKS = {
     "Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0": MT4CoordinateWorkspaceEntryEnvCfg,
     "Isaac-MT4-Coordinate-Plane-Direct-v0": MT4CoordinatePlaneEnvCfg,
+    "Isaac-MT4-Coordinate-Volume-Direct-v0": MT4CoordinateVolumeEnvCfg,
     "Isaac-MT4-Coordinate-Sphere-Direct-v0": MT4CoordinateSphereEnvCfg,
 }
 

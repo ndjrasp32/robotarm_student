@@ -12,6 +12,7 @@ from isaaclab.app import AppLauncher
 TASK_BY_STAGE = {
     "plane": "Isaac-MT4-Coordinate-Plane-Direct-v0",
     "sphere": "Isaac-MT4-Coordinate-Sphere-Direct-v0",
+    "volume": "Isaac-MT4-Coordinate-Volume-Direct-v0",
 }
 FACE_NAMES = (
     "camera_plane",
@@ -96,9 +97,9 @@ def main() -> int:
         "[INFO] Policy observation includes body stereo projections plus a gripper-mounted camera projection.",
         flush=True,
     )
-    if args.stage == "plane" and args.target_interval > 0.0:
+    if args.stage in ("plane", "volume") and args.target_interval > 0.0:
         print(
-            f"[INFO] Plane viewer advances to the next numbered region every {args.target_interval:.1f}s.",
+            f"[INFO] Viewer advances to the next numbered region every {args.target_interval:.1f}s.",
             flush=True,
         )
     unwrapped._compute_intermediate_values()
@@ -112,7 +113,7 @@ def main() -> int:
         if args.scripted_motion:
             actions = scripted_action(elapsed, args.num_envs, unwrapped.device)
         env.step(actions)
-        if args.stage == "plane" and args.target_interval > 0.0 and elapsed >= next_target_time:
+        if args.stage in ("plane", "volume") and args.target_interval > 0.0 and elapsed >= next_target_time:
             env_ids = torch.arange(args.num_envs, device=unwrapped.device)
             unwrapped._sample_targets(env_ids)
             unwrapped._compute_intermediate_values()

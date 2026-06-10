@@ -18,6 +18,8 @@
 4. [20260610_130106_plan_target_tracking_rerun.md](20260610_130106_plan_target_tracking_rerun.md)
 5. [20260610_131608_plan_1cm_overshoot_approach_reward.md](20260610_131608_plan_1cm_overshoot_approach_reward.md)
 6. [20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md](20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md)
+7. [20260610_143523_plan_volume_3x3x3_region_training.md](20260610_143523_plan_volume_3x3x3_region_training.md)
+8. [20260610_143719_run_volume_3x3x3_failure_reach_audit.md](20260610_143719_run_volume_3x3x3_failure_reach_audit.md)
 
 ## Current Setup / 현재 설정
 
@@ -33,6 +35,17 @@
 | video rule / 영상 규칙 | about 1 minute for training and demo videos |
 | overshoot rule / 지나침 억제 | penalize moving past the target away from the robot |
 | approach rule / 접근 방향 | prefer approach from the robot side or from above |
+
+## Next Volume Run / 다음 27영역 실행
+
+| item | value |
+| --- | --- |
+| task / 태스크 | `Isaac-MT4-Coordinate-Volume-Direct-v0` |
+| training script / 학습 스크립트 | `scripts/train_coordinate_stage1_volume_128_1500_video.sh` |
+| region split / 영역 분할 | `3x3x3`, 27 workspace cells |
+| reach-limited workspace / 가동범위 기반 박스 | center `(0.30, 0.00, 0.21)`, size `(0.12, 0.16, 0.12)` |
+| region mastery gate / 영역 통과 기준 | 10 strict 1 cm successes per volume cell |
+| expected metric / 기대 지표 | `mastered_region_count` should progress toward 27 |
 
 ## Current Fix / 현재 보정
 
@@ -63,5 +76,5 @@
 
 ## Next Step / 다음 단계
 
-- KR: 재학습은 완료됐다. 다음 병목은 마지막 1cm 정밀 제어이므로, 목표 근처에서 속도를 낮추거나 멈추는 보상을 따로 확인한다.
-- EN: The rerun is complete. The next bottleneck is final 1 cm precision, so test slower final approach or a separate stop-near-target reward.
+- KR: 다음 실행은 3x3x3 27영역 인식 학습이다. 9영역에서 확인한 카메라 추정과 1cm 추적 보상을 유지하되, 깊이 방향까지 영역 마스터리를 확장한다.
+- EN: The next run is 3x3x3 27-cell region-recognition training. Keep the camera estimate and 1 cm tracking reward from the 9-cell run, but extend region mastery through depth.

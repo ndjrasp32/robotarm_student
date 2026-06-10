@@ -59,6 +59,8 @@ Date: 2026-06-10 KST
 
 2026-06-10 1cm target-tracking 재학습은 1500 iteration에서 9/9 영역을 모두 마스터했습니다. 영역별 누적 성공 횟수는 모두 10회를 넘겼고, 마지막 배치 지표는 `mean_distance=0.0345 m`, `near_center_7cm_rate=0.8943`, `camera_region_match_rate=1.0000`, `target_three_camera_visible_rate=0.9197`, `target_overshoot=0.0128 m`입니다. 다만 마지막 배치의 `center_1cm_rate=0.0000`이므로, 다음 병목은 카메라 인식보다 목표 근처 마지막 1cm 정밀 제어입니다. 실행 기록은 `learning_journal/2026-06-10_three_camera_coordinate_baseline/20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md`입니다.
 
+2026-06-10 첫 3x3x3 27영역 학습은 좋은 실패 기록으로 보존합니다. 1500 iteration 동안 `mastered_region_count=0`, `inside_workspace_rate=0.0000`, `center_1cm_rate=0.0000`이었고, 원인은 영역 수 자체보다 가동범위 기반 작업 박스를 먼저 확정하지 않은 데 있었습니다. 다음 27영역 학습은 gripper 가동 샘플을 기준으로 center `(0.30, 0.00, 0.21)`, size `(0.12, 0.16, 0.12)`인 보수 박스에서 실행합니다. 상세 기록은 `learning_journal/2026-06-10_three_camera_coordinate_baseline/20260610_143719_run_volume_3x3x3_failure_reach_audit.md`입니다.
+
 Stage 1 검증은 `scripts/view_coordinate_curriculum.sh --stage plane`로 먼저 수행합니다. marker와 콘솔 로그가 1번부터 9번까지 순차적으로 넘어가는지 확인하고, 학습 run에서는 `region_mastery.csv`와 region별 success count를 같이 확인합니다. 이 결과가 반복 가능해진 뒤에만 `robotarm_mt4` 실제 기기 이식 후보로 올립니다.
 
 ### 오늘의 운영 규칙
@@ -161,6 +163,8 @@ The current correction is a target-tracking rerun meant to reduce the demo patte
 The 2026-06-10 follow-up tightens the success distance to `0.010 m`, strengthens tracking around the actual gripper-to-target distance, penalizes moving past the target with `target_overshoot`, and logs/rewards `preferred_approach_error` so the arm prefers entering from the robot side or from above.
 
 The 2026-06-10 1 cm target-tracking rerun mastered all 9 regions within 1500 iterations. Every region exceeded the 10-success cumulative gate. Final-batch metrics were `mean_distance=0.0345 m`, `near_center_7cm_rate=0.8943`, `camera_region_match_rate=1.0000`, `target_three_camera_visible_rate=0.9197`, and `target_overshoot=0.0128 m`. However, final-batch `center_1cm_rate=0.0000`, so the next bottleneck is final 1 cm control precision more than camera recognition. The run record is `learning_journal/2026-06-10_three_camera_coordinate_baseline/20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md`.
+
+Keep the first 2026-06-10 3x3x3 27-cell run as a useful failure record. Over 1500 iterations it stayed at `mastered_region_count=0`, `inside_workspace_rate=0.0000`, and `center_1cm_rate=0.0000`; the cause was not only the number of cells, but the missing reach-based workspace definition before volume training. The next 27-cell run uses a conservative gripper-reach box with center `(0.30, 0.00, 0.21)` and size `(0.12, 0.16, 0.12)`. Details are in `learning_journal/2026-06-10_three_camera_coordinate_baseline/20260610_143719_run_volume_3x3x3_failure_reach_audit.md`.
 
 Validate Stage 1 first with `scripts/view_coordinate_curriculum.sh --stage plane`; the marker and console log should advance from region 1 through 9 in order. During training, also inspect `region_mastery.csv` and the per-region success counts. Keep this validation in `robotarm_student` and consider `robotarm_mt4` transfer only after the student simulation result is repeatable.
 
