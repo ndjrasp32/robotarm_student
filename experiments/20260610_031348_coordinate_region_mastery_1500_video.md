@@ -14,7 +14,7 @@ Increase Stage 1 training iterations while keeping the same strict success rule:
 - Training command: `TERM=xterm-256color MT4_MAX_ITERATIONS=1500 MT4_RECORD_VIDEO=1 MT4_VIDEO_LENGTH=240 MT4_VIDEO_INTERVAL=12000 scripts/train_coordinate_stage1_plane_128_1500_video.sh`
 - Training time: 832.57 seconds (13m 52.57s)
 - Final checkpoint: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_coordinate_curriculum_direct/2026-06-10_03-13-48/model_1499.pt`
-- Video: `logs/videos/20260610_032809_coordinate_region_mastery_1500_2026-06-10_03-13-48.mp4`
+- Video: `learning_journal/videos/20260610_032809_train_coordinate_region_mastery_stage1_1500iter.mp4`
 - Previous baseline: `experiments/20260610_coordinate_region_mastery_stage1_result.md`
 
 ## Final Metrics

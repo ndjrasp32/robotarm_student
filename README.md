@@ -11,8 +11,9 @@
 매일 시작할 때는 이 순서만 봅니다.
 
 1. `docs/CURRENT_BASELINE.md`
-2. `README.md`
-3. `notes/`와 `experiments/`는 기준 문서에 링크된 항목만 필요할 때 확인
+2. `learning_journal/README.md`
+3. `README.md`
+4. `notes/`와 `experiments/`는 기준 문서에 링크된 항목만 필요할 때 확인
 
 현재 기준은 Mars rover MT4 manipulation plan에서 다시 시작합니다. 첫 실용 검증 대상은 `push` 또는 `pull`입니다. 이 두 미션은 완전한 grasp 모델에 의존하기 전에 동적 물체 접촉과 reset 동작을 먼저 확인할 수 있기 때문입니다.
 
@@ -26,6 +27,8 @@
 - coordinate workspace-entry warm-up: `scripts/train_coordinate_stage0_workspace_entry_128_300.sh`
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
+- student learning journal: `learning_journal/README.md`
+- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`
@@ -34,6 +37,7 @@
 - 실행 스크립트: `scripts/`
 - 실험 기록: `experiments/`
 - 작업 노트 archive: `notes/`
+- 학생용 계획/결과/영상 기록: `learning_journal/`
 - 실제 기기 관련 보조 자료: `hardware/`
 
 ### 문서 운영 규칙
@@ -55,8 +59,9 @@ This repository manages MT4 staged reach, pregrasp, insertion curriculum work an
 Start each day in this order:
 
 1. `docs/CURRENT_BASELINE.md`
-2. `README.md`
-3. Open `notes/` and `experiments/` only when the baseline links to a specific entry
+2. `learning_journal/README.md`
+3. `README.md`
+4. Open `notes/` and `experiments/` only when the baseline links to a specific entry
 
 The active baseline restarts from the Mars rover MT4 manipulation plan. The first practical validation target should be `push` or `pull`, because those missions can validate dynamic-object contact and reset behavior before relying on a complete grasp model.
 
@@ -82,6 +87,8 @@ The working baseline was reset on 2026-05-22. The previous state had too many da
 - coordinate workspace-entry warm-up: `scripts/train_coordinate_stage0_workspace_entry_128_300.sh`
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
+- student learning journal: `learning_journal/README.md`
+- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`
@@ -90,6 +97,7 @@ The working baseline was reset on 2026-05-22. The previous state had too many da
 - runnable scripts: `scripts/`
 - experiment records: `experiments/`
 - work-note archive: `notes/`
+- student-facing plan/result/video records: `learning_journal/`
 - real-device support material: `hardware/`
 
 ### Documentation Policy

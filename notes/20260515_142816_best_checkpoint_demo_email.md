@@ -6,8 +6,8 @@
 
 ## Attachment
 
-- `logs/videos/20260515_142816_best_checkpoint_random_targets_10episodes_zoom.mp4`
-- source recording: `logs/videos/20260515_142816_best_checkpoint_random_targets_10episodes.mp4`
+- `learning_journal/videos/20260515_142816_demo_best_checkpoint_random_targets_10episodes_zoom.mp4`
+- source recording: `learning_journal/videos/20260515_142816_demo_best_checkpoint_random_targets_10episodes.mp4`
 
 ## Subject
 

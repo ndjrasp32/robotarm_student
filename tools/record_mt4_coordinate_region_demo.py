@@ -29,7 +29,7 @@ parser.add_argument("--video_length", type=int, default=7200, help="Video length
 parser.add_argument("--target_interval_steps", type=int, default=360, help="Steps per displayed region target.")
 parser.add_argument("--sequence_seed", type=int, default=42)
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment.")
-parser.add_argument("--output_dir", type=Path, default=PROJECT_DIR / "logs/videos")
+parser.add_argument("--output_dir", type=Path, default=PROJECT_DIR / "learning_journal/videos")
 parser.add_argument("--prefix", default=None)
 parser.add_argument(
     "--agent", type=str, default="rsl_rl_cfg_entry_point", help="Name of the RL agent configuration entry point."
@@ -131,7 +131,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg, agent_cfg: RslRlBaseRun
         resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
     env_cfg.log_dir = os.path.dirname(resume_path)
 
-    stamp = args_cli.prefix or datetime.now().strftime("%Y%m%d_%H%M%S_coordinate_random_region_demo")
+    stamp = args_cli.prefix or datetime.now().strftime("%Y%m%d_%H%M%S_demo_coordinate_random_region")
     raw_video_dir = args_cli.output_dir / f"{stamp}_raw"
     output_video = args_cli.output_dir / f"{stamp}.mp4"
     sequence_csv = args_cli.output_dir / f"{stamp}_sequence.csv"

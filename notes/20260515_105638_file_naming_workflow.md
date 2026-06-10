@@ -1,10 +1,10 @@
-# 20260515_105638 File Naming Workflow
+# 20260515_105638 File Naming Workflow / 파일명 운영 규칙
 
-## 목표
+## 목표 / Goal
 
-GitHub에서 실험이 쌓였을 때, 어떤 파일이 먼저 만들어졌고 어떤 실험이 최신인지 바로 알 수 있도록 파일 이름 앞에 날짜와 시간을 붙인다.
+GitHub에서 실험이 쌓였을 때, 어떤 파일이 먼저 만들어졌고 어떤 실험이 최신인지 바로 알 수 있도록 파일 이름 앞에 날짜와 시간을 붙인다. / Prefix filenames with date and time so students can quickly identify order and recency on GitHub.
 
-기본 형식:
+기본 형식 / Base format:
 
 ```text
 YYYYMMDD_HHMMSS_short_label.ext
@@ -19,15 +19,24 @@ YYYYMMDD_HHMMSS_short_label.ext
 logs/plots/20260515_113000_radial_pregrasp_visual_16env_300iter/
 ```
 
-## 앞으로의 규칙
+## 앞으로의 규칙 / Rules
 
 - `notes/`에 새 문서를 만들 때는 날짜/시간을 앞에 붙인다.
 - `experiments/`의 개별 실험 기록은 날짜/시간을 앞에 붙인다.
+- 학생 공유용 정리본은 `learning_journal/`에 두고, `learning_journal/RECORD_FORMAT.md` 양식을 따른다.
+- 영상은 `learning_journal/videos/`에 두고 `YYYYMMDD_HHMMSS_kind_topic_detail.ext` 형식을 따른다.
 - `logs/plots/`의 루트 파일은 latest 용도로 유지한다.
 - `logs/plots/YYYYMMDD_HHMMSS_label/` 디렉터리는 push 가능한 고정 스냅샷으로 본다.
 - `experiments/mt4_reach_experiment_log.csv`는 전체 실험 index 역할만 한다.
 
-## 스크립트 변경
+English summary:
+
+- Put student-facing summaries in `learning_journal/`.
+- Put stable videos in `learning_journal/videos/`.
+- Keep `notes/` and `experiments/` as source archives.
+- Use `learning_journal/RECORD_FORMAT.md` for new bilingual plan/result records.
+
+## 스크립트 변경 / Script Changes
 
 `scripts/plot_and_select_best.sh`는 실행이 끝나면 자동으로 plot snapshot 디렉터리를 만든다.
 
@@ -61,11 +70,11 @@ experiments/20260515_113000_radial_pregrasp_visual_16env_300iter.md
 experiments/20260515_113000_radial_pregrasp_visual_16env_300iter_metrics.csv
 ```
 
-## latest와 snapshot의 차이
+## latest와 snapshot의 차이 / Latest vs Snapshot
 
 `logs/plots/mt4_*.png`는 가장 최근 plot 결과가 계속 덮어써지는 latest 파일이다. 빠르게 확인할 때 사용한다.
 
-반대로 `logs/plots/YYYYMMDD_HHMMSS_label/` 안의 파일은 그 실험 시점의 결과를 보존하는 snapshot이다. GitHub에서 수업용 흐름을 설명할 때는 snapshot 디렉터리와 `experiments/YYYYMMDD_HHMMSS_label.md`를 함께 본다.
+반대로 `logs/plots/YYYYMMDD_HHMMSS_label/` 안의 파일은 그 실험 시점의 결과를 보존하는 snapshot이다. GitHub에서 수업용 흐름을 설명할 때는 `learning_journal/`의 정리본, snapshot 디렉터리, `experiments/YYYYMMDD_HHMMSS_label.md`를 함께 본다. / Plot snapshot directories preserve the result at the time of the experiment. For classroom review, use the `learning_journal/` summary together with the snapshot directory and the matching experiment record.
 
 ## 다음 학습 제안
 

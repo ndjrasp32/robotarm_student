@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_DIR="${HOME}/work/robotarm/robotarm_student"
 ISAAC_LOG_ROOT="${MT4_VIDEO_LOG_ROOT:-${HOME}/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_coordinate_curriculum_direct}"
-OUTPUT_DIR="${PROJECT_DIR}/logs/videos"
+OUTPUT_DIR="${PROJECT_DIR}/learning_journal/videos"
 LABEL="${MT4_VIDEO_LABEL:-coordinate_region_mastery}"
 
 mkdir -p "${OUTPUT_DIR}"
@@ -19,7 +19,7 @@ fi
 
 RUN_NAME="$(basename "$(dirname "$(dirname "$(dirname "${LATEST_VIDEO}")")")")"
 STAMP="$(date +%Y%m%d_%H%M%S)"
-OUTPUT_FILE="${OUTPUT_DIR}/${STAMP}_${LABEL}_${RUN_NAME}.mp4"
+OUTPUT_FILE="${OUTPUT_DIR}/${STAMP}_train_${LABEL}_${RUN_NAME}.mp4"
 
 if command -v ffmpeg >/dev/null 2>&1; then
   ffmpeg -y -i "${LATEST_VIDEO}" -vf "scale=640:-2" -c:v libx264 -preset veryfast -crf 30 -an "${OUTPUT_FILE}" >/dev/null 2>&1

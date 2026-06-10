@@ -27,7 +27,7 @@
 
 ## Video
 
-- Project copy: `logs/videos/folded_topdown_seed42_model999.mp4`
+- Project copy: `learning_journal/videos/20260512_153939_demo_folded_topdown_seed42_model999.mp4`
 - IsaacLab source: `/home/spark-robotics/work/isaac/src/IsaacLab/logs/rsl_rl/mt4_simplified_reach_direct/2026-05-12_15-39-39/videos/play/rl-video-step-0.mp4`
 
 ## Interpretation

@@ -476,7 +476,7 @@
   - checkpoint에 저장된 policy std가 바로 덮어쓰이므로 `init_noise_std`만 낮추는 것은 효과가 제한적이다.
   - 대신 stage4에서 `action_scale=0.030`으로 실제 관절 목표 변화량을 줄이고, `action_penalty=0.018`로 과한 움직임을 더 억제한다.
   - PPO entropy는 `0.003`으로 낮춰 후속 학습에서 탐색이 더 커지는 것을 줄인다.
-  - IsaacLab train.py의 `--video` 기능으로 학습 영상을 만들고, `ffmpeg`로 640px 폭의 저해상도 mp4를 `logs/videos/`에 복사한다.
+  - IsaacLab train.py의 `--video` 기능으로 학습 영상을 만들고, `ffmpeg`로 640px 폭의 저해상도 mp4를 `learning_journal/videos/`에 복사한다.
 - 적용:
   - `scripts/train_stage4_center_visual_low_exploration_16_120.sh` 추가
   - `scripts/copy_latest_training_video_lowres.sh` 추가
@@ -484,7 +484,7 @@
 - 영상 확인:
   - IsaacLab train.py의 `--video` 옵션으로 mp4 생성이 가능함을 확인했다.
   - `--video_interval=1`은 매 step마다 영상을 만들어 GUI 학습이 지나치게 느려지므로, 기본값을 `100000`으로 바꿔 첫 구간만 녹화하도록 조정했다.
-  - 짧은 확인 영상은 `logs/videos/20260515_124112_stage4_center_low_exploration_videos.mp4`에 저장했다.
+  - 짧은 확인 영상은 `learning_journal/videos/20260515_124112_train_stage4_center_low_exploration.mp4`에 저장했다.
   - 중단된 확인용 run은 plot/select가 최신 run으로 오해하지 않도록 IsaacLab logs에서 삭제했다.
 
 ## 2026-05-15 relaxed success curriculum
