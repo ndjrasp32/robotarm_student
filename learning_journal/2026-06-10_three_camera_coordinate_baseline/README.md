@@ -15,6 +15,7 @@
 1. [20260610_111308_plan_three_camera_coordinate_baseline.md](20260610_111308_plan_three_camera_coordinate_baseline.md)
 2. [20260610_111518_run_three_camera_coordinate_baseline_1500iter.md](20260610_111518_run_three_camera_coordinate_baseline_1500iter.md)
 3. [20260610_114129_plan_success10_video1min_demo_check.md](20260610_114129_plan_success10_video1min_demo_check.md)
+4. [20260610_130106_plan_target_tracking_rerun.md](20260610_130106_plan_target_tracking_rerun.md)
 
 ## Current Setup / 현재 설정
 
@@ -24,10 +25,21 @@
 | training script / 학습 스크립트 | `scripts/train_coordinate_stage1_three_camera_baseline_128_1500_video.sh` |
 | body cameras / 몸체 카메라 | fixed left/right stereo projection |
 | gripper camera / 그리퍼 카메라 | target `u/v/depth/visible` projection from gripper frame |
-| policy observation / 정책 관측 | 51 values |
+| policy observation / 정책 관측 | 54 values after target-tracking update |
 | strict success / 엄격 성공 | same camera region and target center within `0.030 m` |
 | region mastery gate / 영역 통과 기준 | 10 strict successes per region for new runs |
 | video rule / 영상 규칙 | about 1 minute for training and demo videos |
+
+## Current Fix / 현재 보정
+
+- KR: 이전 정책은 영역 통과는 빨랐지만, 데모에서 새 목표 중심을 충분히 따라가지 못했다.
+- EN: The previous policy passed regions quickly, but the demo did not follow new target centers well enough.
+
+- KR: 새 보정은 카메라로 추정한 목표 상대좌표 3개를 정책 입력에 추가하고, 목표 중심으로 가까워지는 보상을 강화한다.
+- EN: The new update adds 3 camera-estimated target-relative values to the policy input and strengthens the reward for moving to the target center.
+
+- KR: 랜덤 데모는 목표를 바꾼 직후 정책 관측도 바로 새로 읽도록 수정했다.
+- EN: The random demo now refreshes policy observations immediately after target changes.
 
 ## Evidence / 근거 자료
 

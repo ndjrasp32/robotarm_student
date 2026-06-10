@@ -145,7 +145,7 @@ def plot_region_mastery(rows: list[dict[str, str]], out_path: Path) -> bool:
 
     plt.figure(figsize=(9, 5))
     plt.bar(regions, counts, color=colors)
-    plt.axhline(5, color="#d62828", linestyle="--", linewidth=1.2, label="mastery threshold")
+    plt.axhline(10, color="#d62828", linestyle="--", linewidth=1.2, label="mastery threshold")
     plt.title("Coordinate Region Mastery Counts")
     plt.xlabel("region number")
     plt.ylabel("strict 3 cm successes")
@@ -252,6 +252,9 @@ def main() -> None:
         "camera_region_match_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_camera_region_match_rate"]
         ),
+        "target_estimate_error_m": find_one(
+            tags, ["coordinate_curriculum/plane_localization_mean_target_estimate_error"]
+        ),
         "inside_workspace_rate": find_one(tags, ["coordinate_curriculum/plane_localization_inside_workspace_rate"]),
         "target_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_target_stereo_visible_rate"]
@@ -315,6 +318,7 @@ def main() -> None:
         f"| mean_distance | {format_value(metrics['mean_distance_m'])} m ({final_distance_cm:.2f} cm) |",
         f"| camera_region_entry_rate | {format_value(metrics['camera_region_entry_rate'])} |",
         f"| camera_region_match_rate | {format_value(metrics['camera_region_match_rate'])} |",
+        f"| target_estimate_error | {format_value(metrics['target_estimate_error_m'])} m |",
         f"| inside_workspace_rate | {format_value(metrics['inside_workspace_rate'])} |",
         f"| target_stereo_visible_rate | {format_value(metrics['target_stereo_visible_rate'])} |",
         f"| target_gripper_camera_visible_rate | {format_value(metrics['target_gripper_camera_visible_rate'])} |",
@@ -329,8 +333,9 @@ def main() -> None:
         "| --- | ---: | ---: | ---: | ---: | --- |",
         "| previous baseline | 500 | 2 | 3 | 0.0821 m | 3번 영역 마스터 전 정지 / stopped before region 3 mastery |",
         "| previous extended baseline | 1500 | 7 | 8 | 0.0534 m | 8번 영역에서 정지 / stopped at region 8 |",
+        "| previous three-camera baseline | 1500 | 9 | 9 | 0.0545 m | 5회 성공 기준 / 5-success gate |",
         f"| this run | 1500 | {mastered_count} | {active_region} | {format_value(metrics['mean_distance_m'])} m | "
-        "제안사항 반영 재학습 / rerun with proposal updates |",
+        "카메라 추정 목표 추적 보강 / camera-estimated target tracking update |",
         "",
     ]
 
@@ -370,7 +375,10 @@ def main() -> None:
             "- Stage 1 순차 9영역 학습을 실행했다. / Ran Stage 1 sequential 9-region training.",
             "- 타겟 생성 좌표와 정책 입력 영역을 분리했다. / Separated target-generation coordinates from the policy-input region.",
             "- 정책 입력의 영역 feature는 몸체 좌/우 스테레오 projection에서 추정한 영역으로 만들었다. / Built the policy-input region feature from the body left/right stereo projection.",
+            "- 몸체 좌/우 스테레오 projection으로 추정한 목표 상대좌표를 정책 입력에 추가했다. / Added the body-stereo-estimated target-relative position to the policy observation.",
             "- 세 번째 그리퍼 카메라 projection을 관측과 보상 로그에 추가했다. / Added the third gripper-camera projection to observations and reward logs.",
+            "- 목표 중심으로 가도록 보상 신호를 더 직접적으로 넣었다. / Added a more direct reward signal for moving to the target center.",
+            "- 랜덤 데모에서 목표를 바꾼 뒤 정책 관측도 즉시 새로 읽도록 수정했다. / Fixed the random demo so observations refresh immediately after a target override.",
             "- 엄격한 3cm 성공 조건은 바꾸지 않았다. / Kept the strict 3 cm success rule unchanged.",
             "- Gym `RecordVideo`로 학습 영상을 기록했다. / Recorded training video through Gym `RecordVideo`.",
             "- 좌표 전용 TensorBoard 그래프, 최종 지표 CSV, 체크포인트 CSV, 이 리포트를 생성했다. / Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",
@@ -378,8 +386,9 @@ def main() -> None:
             "## 해석 / Interpretation",
             "",
             "- 영역별 성공 횟수가 이 커리큘럼의 핵심 지표다. / Per-region success count is the key curriculum metric.",
-            "- 이전 1500회 학습은 7개 영역에서 멈췄지만, 이번 학습은 9개 영역을 모두 마스터했다. / The previous 1500-iteration run stopped at 7 mastered regions, while this run mastered all 9 regions.",
+            "- 이번 학습의 핵심 확인점은 목표가 바뀔 때 그리퍼가 같은 위치만 반복하지 않고 새 목표 중심으로 움직이는지다. / The key check is whether the gripper follows the new target center instead of repeating one position.",
             "- `camera_region_match_rate`는 생성된 정답 영역과 카메라 추정 영역의 일치 여부를 보여준다. / `camera_region_match_rate` shows whether the generated true region matches the camera-estimated region.",
+            "- `target_estimate_error`는 카메라로 추정한 목표 위치가 실제 목표와 얼마나 가까운지 보여준다. / `target_estimate_error` shows how close the camera-estimated target point is to the true target.",
             "- 최종 `success_rate`는 마지막 로깅 배치 기준이라 영역별 누적 성공을 과소평가할 수 있다. / The final `success_rate` is batch-local and can understate cumulative per-region progress.",
             "- 거리 기준은 완화하지 않았다. 마스터된 모든 영역은 같은 3cm 엄격 조건으로 집계된다. / The distance criterion was not relaxed. Every mastered region is counted with the same 3 cm strict success rule.",
             "- 이번 수정의 목적은 실제 시연 접근 선택을 생성 좌표가 아니라 카메라 추정 영역에 의존하게 만드는 것이다. / This update makes demo approach selection depend on the camera-estimated region instead of generated coordinates.",

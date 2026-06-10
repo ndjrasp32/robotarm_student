@@ -191,8 +191,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg, agent_cfg: RslRlBaseRun
             elif hasattr(runner.alg, "actor_critic") and hasattr(runner.alg.actor_critic, "reset"):
                 runner.alg.actor_critic.reset(dones)
         set_region_target(base_env, sequence[current_segment])
-        if torch.any(dones):
-            obs = env.get_observations()
+        obs = env.get_observations()
 
     env.close()
     copied = copy_recorded_video(raw_video_dir, output_video)
