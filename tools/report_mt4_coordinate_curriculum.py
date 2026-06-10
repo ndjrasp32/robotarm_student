@@ -242,7 +242,13 @@ def main() -> None:
         "camera_region_entry_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_camera_region_entry_rate"]
         ),
+        "camera_region_match_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_camera_region_match_rate"]
+        ),
         "inside_workspace_rate": find_one(tags, ["coordinate_curriculum/plane_localization_inside_workspace_rate"]),
+        "target_stereo_visible_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_target_stereo_visible_rate"]
+        ),
         "gripper_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_gripper_stereo_visible_rate"]
         ),
@@ -295,7 +301,9 @@ def main() -> None:
         f"| strict_region_center_success_rate | {format_value(metrics['strict_region_center_success_rate'])} |",
         f"| mean_distance | {format_value(metrics['mean_distance_m'])} m ({final_distance_cm:.2f} cm) |",
         f"| camera_region_entry_rate | {format_value(metrics['camera_region_entry_rate'])} |",
+        f"| camera_region_match_rate | {format_value(metrics['camera_region_match_rate'])} |",
         f"| inside_workspace_rate | {format_value(metrics['inside_workspace_rate'])} |",
+        f"| target_stereo_visible_rate | {format_value(metrics['target_stereo_visible_rate'])} |",
         f"| gripper_stereo_visible_rate | {format_value(metrics['gripper_stereo_visible_rate'])} |",
         f"| active_region_number | {active_region} |",
         f"| mastered_region_count | {mastered_count} |",
@@ -345,8 +353,9 @@ def main() -> None:
             "Codex 구현 / Codex implementation:",
             "",
             "- Stage 1 순차 9영역 학습을 실행했다. / Ran Stage 1 sequential 9-region training.",
+            "- 타겟 생성 좌표와 정책 입력 영역을 분리했다. / Separated target-generation coordinates from the policy-input region.",
+            "- 정책 입력의 영역 feature는 두 카메라 projection에서 추정한 영역으로 만들었다. / Built the policy-input region feature from the region estimated through two camera projections.",
             "- 엄격한 3cm 성공 조건은 바꾸지 않았다. / Kept the strict 3 cm success rule unchanged.",
-            "- 7cm 이내 중심 접근 보상을 추가해 3cm 성공까지의 조밀 신호를 강화했다. / Added near-center shaping inside 7 cm to strengthen the dense signal toward 3 cm success.",
             "- Gym `RecordVideo`로 학습 영상을 기록했다. / Recorded training video through Gym `RecordVideo`.",
             "- 좌표 전용 TensorBoard 그래프, 최종 지표 CSV, 체크포인트 CSV, 이 리포트를 생성했다. / Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",
             "",
@@ -354,10 +363,10 @@ def main() -> None:
             "",
             "- 영역별 성공 횟수가 이 커리큘럼의 핵심 지표다. / Per-region success count is the key curriculum metric.",
             "- 이전 1500회 학습은 7개 영역에서 멈췄지만, 이번 학습은 9개 영역을 모두 마스터했다. / The previous 1500-iteration run stopped at 7 mastered regions, while this run mastered all 9 regions.",
-            "- 7cm 중심 접근 보상은 8번 병목을 넘기는 데 효과가 있었다. / The 7 cm near-center shaping was effective for passing the region 8 bottleneck.",
+            "- `camera_region_match_rate`는 생성된 정답 영역과 카메라 추정 영역의 일치 여부를 보여준다. / `camera_region_match_rate` shows whether the generated true region matches the camera-estimated region.",
             "- 최종 `success_rate`는 마지막 로깅 배치 기준이라 영역별 누적 성공을 과소평가할 수 있다. / The final `success_rate` is batch-local and can understate cumulative per-region progress.",
             "- 거리 기준은 완화하지 않았다. 마스터된 모든 영역은 같은 3cm 엄격 조건으로 집계된다. / The distance criterion was not relaxed. Every mastered region is counted with the same 3 cm strict success rule.",
-            "- 이번 수정의 목적은 7cm 안쪽에서 중심으로 더 안정적으로 수렴하게 하는 것이다. / This update aims to make convergence toward the center more stable inside 7 cm.",
+            "- 이번 수정의 목적은 실제 시연 접근 선택을 생성 좌표가 아니라 카메라 추정 영역에 의존하게 만드는 것이다. / This update makes demo approach selection depend on the camera-estimated region instead of generated coordinates.",
             "",
             f"Generated at `{datetime.now().isoformat(timespec='seconds')}`.",
             "",

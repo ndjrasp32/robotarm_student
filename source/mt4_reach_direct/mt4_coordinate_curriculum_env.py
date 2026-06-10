@@ -246,6 +246,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.target_pos = torch.zeros((self.num_envs, 3), device=self.device)
         self.face_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
         self.region_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+        self.camera_estimated_target_pos = torch.zeros((self.num_envs, 3), device=self.device)
+        self.camera_estimated_face_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+        self.camera_estimated_region_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+        self.camera_region_matches = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.face_one_hot = torch.zeros((self.num_envs, 6), device=self.device)
         self.region_features = torch.zeros((self.num_envs, 4), device=self.device)
         self.gripper_center_pos = torch.zeros((self.num_envs, 3), device=self.device)
@@ -260,6 +264,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.inside_workspace = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_stereo_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.gripper_stereo_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.target_left_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.target_right_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.gripper_left_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.gripper_right_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
         self.gripper_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
         self.episode_rewards = torch.zeros((self.num_envs,), device=self.device)
@@ -396,14 +404,28 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             f"{prefix}_mean_plane_error": self.plane_error.mean(),
             f"{prefix}_mean_camera_region_error": self.region_uv_error.mean(),
             f"{prefix}_camera_region_entry_rate": self.in_target_region.float().mean(),
+            f"{prefix}_camera_region_match_rate": self.camera_region_matches.float().mean(),
             f"{prefix}_mean_workspace_entry_error": self.workspace_entry_error.mean(),
             f"{prefix}_mean_camera_alignment_error": self.camera_alignment_error.mean(),
             f"{prefix}_inside_workspace_rate": self.inside_workspace.float().mean(),
+            f"{prefix}_target_left_visible_rate": self.target_left_visible.float().mean(),
+            f"{prefix}_target_right_visible_rate": self.target_right_visible.float().mean(),
             f"{prefix}_target_stereo_visible_rate": self.target_stereo_visible.float().mean(),
+            f"{prefix}_gripper_left_visible_rate": self.gripper_left_visible.float().mean(),
+            f"{prefix}_gripper_right_visible_rate": self.gripper_right_visible.float().mean(),
             f"{prefix}_gripper_stereo_visible_rate": self.gripper_stereo_visible.float().mean(),
             f"{prefix}_mean_region_number": (self.region_ids.float() + 1.0).mean(),
             f"{prefix}_min_region_number": (self.region_ids.float() + 1.0).min(),
             f"{prefix}_max_region_number": (self.region_ids.float() + 1.0).max(),
+            f"{prefix}_mean_camera_estimated_region_number": (
+                self.camera_estimated_region_ids.float() + 1.0
+            ).mean(),
+            f"{prefix}_min_camera_estimated_region_number": (
+                self.camera_estimated_region_ids.float() + 1.0
+            ).min(),
+            f"{prefix}_max_camera_estimated_region_number": (
+                self.camera_estimated_region_ids.float() + 1.0
+            ).max(),
             f"{prefix}_center_3cm_rate": (self.distance < self.cfg.center_success_radius).float().mean(),
             f"{prefix}_near_center_7cm_rate": (self.distance < self.cfg.near_center_radius).float().mean(),
             f"{prefix}_strict_region_center_success_rate": (
@@ -487,6 +509,9 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.target_pos[env_ids] = target
         self.face_ids[env_ids] = face_ids
         self.region_ids[env_ids] = region_ids
+        self.camera_estimated_target_pos[env_ids] = target
+        self.camera_estimated_face_ids[env_ids] = face_ids
+        self.camera_estimated_region_ids[env_ids] = region_ids
         self.face_one_hot[env_ids] = torch.nn.functional.one_hot(face_ids, num_classes=6).float()
         self.region_features[env_ids] = self._region_features(region_ids)
         self._update_markers()
@@ -671,6 +696,75 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         )
         return torch.argmin(distances, dim=-1).long()
 
+    def _front_face_region_ids_from_points(self, points: torch.Tensor) -> torch.Tensor:
+        span = torch.clamp(self.workspace_max - self.workspace_min, min=1e-6)
+        norm_y = ((points[:, 1] - self.workspace_min[1]) / span[1]).clamp(0.0, 0.999999)
+        norm_z = ((points[:, 2] - self.workspace_min[2]) / span[2]).clamp(0.0, 0.999999)
+        col_ids = torch.clamp((norm_y * self.region_cols).long(), max=self.region_cols - 1)
+        row_ids = torch.clamp((norm_z * self.region_rows).long(), max=self.region_rows - 1)
+        return (row_ids * self.region_cols + col_ids).long()
+
+    def _camera_basis(self, camera_pos: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        look_at = torch.tensor(self.cfg.camera_look_at, device=self.device)
+        forward = look_at - camera_pos
+        forward = forward / torch.clamp(torch.linalg.norm(forward), min=1e-6)
+        world_up = torch.tensor((0.0, 0.0, 1.0), device=self.device)
+        right = torch.cross(forward, world_up, dim=0)
+        right = right / torch.clamp(torch.linalg.norm(right), min=1e-6)
+        up = torch.cross(right, forward, dim=0)
+        up = up / torch.clamp(torch.linalg.norm(up), min=1e-6)
+        return forward, right, up
+
+    def _camera_rays_from_uv(self, uv: torch.Tensor, camera_pos: torch.Tensor) -> torch.Tensor:
+        forward, right, up = self._camera_basis(camera_pos)
+        focal = 1.0 / torch.tan(torch.deg2rad(torch.tensor(self.cfg.camera_fov_deg * 0.5, device=self.device)))
+        rays = forward.unsqueeze(0) + (uv[:, 0:1] / focal) * right.unsqueeze(0) + (uv[:, 1:2] / focal) * up.unsqueeze(0)
+        return rays / torch.clamp(torch.linalg.norm(rays, dim=-1, keepdim=True), min=1e-6)
+
+    def _triangulate_stereo_points(self, stereo_features: torch.Tensor) -> torch.Tensor:
+        left_pos = torch.tensor(self.cfg.left_camera_pos, device=self.device)
+        right_pos = torch.tensor(self.cfg.right_camera_pos, device=self.device)
+        left_ray = self._camera_rays_from_uv(stereo_features[:, 0:2], left_pos)
+        right_ray = self._camera_rays_from_uv(stereo_features[:, 3:5], right_pos)
+
+        w0 = left_pos.unsqueeze(0) - right_pos.unsqueeze(0)
+        a = torch.sum(left_ray * left_ray, dim=-1)
+        b = torch.sum(left_ray * right_ray, dim=-1)
+        c = torch.sum(right_ray * right_ray, dim=-1)
+        d = torch.sum(left_ray * w0, dim=-1)
+        e = torch.sum(right_ray * w0, dim=-1)
+        denom = torch.clamp(a * c - b * b, min=1e-6)
+        left_t = (b * e - c * d) / denom
+        right_t = (a * e - b * d) / denom
+        left_point = left_pos.unsqueeze(0) + left_t.unsqueeze(-1) * left_ray
+        right_point = right_pos.unsqueeze(0) + right_t.unsqueeze(-1) * right_ray
+        return 0.5 * (left_point + right_point)
+
+    def _estimate_regions_from_target_cameras(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        target_estimate = self._triangulate_stereo_points(self.target_camera_features)
+        visible = torch.all(self.target_camera_features[:, [2, 5]] > 0.5, dim=-1)
+        fallback_region = min(self.total_regions // 2, self.total_regions - 1)
+
+        if self.cfg.front_face_region_targets:
+            target_estimate[:, 0] = self.workspace_center[0]
+            region_ids = self._front_face_region_ids_from_points(target_estimate)
+            face_ids = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+            region_centers = self._front_face_region_centers(region_ids)
+        else:
+            target_estimate = torch.max(torch.min(target_estimate, self.workspace_max), self.workspace_min)
+            region_ids, face_ids = self._nearest_region_ids(target_estimate)
+            region_centers = self._region_centers(region_ids)
+
+        fallback_ids = torch.full((self.num_envs,), fallback_region, dtype=torch.long, device=self.device)
+        fallback_faces = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
+        region_ids = torch.where(visible, region_ids, fallback_ids)
+        face_ids = torch.where(visible, face_ids, fallback_faces)
+        if self.cfg.front_face_region_targets:
+            region_centers = self._front_face_region_centers(region_ids)
+        else:
+            region_centers = self._region_centers(region_ids)
+        return region_centers, face_ids, region_ids, visible
+
     def _compute_intermediate_values(self):
         ee_pos_w = self.robot.data.body_pos_w[:, self.ee_body_id, :]
         ee_quat_w = self.robot.data.body_quat_w[:, self.ee_body_id, :]
@@ -694,11 +788,24 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.inside_workspace = torch.all(inside_min & inside_max, dim=-1)
         self.target_camera_features = self._project_to_stereo(self.target_pos)
         self.gripper_camera_features = self._project_to_stereo(self.gripper_center_pos)
+        (
+            self.camera_estimated_target_pos,
+            self.camera_estimated_face_ids,
+            self.camera_estimated_region_ids,
+            self.target_stereo_visible,
+        ) = self._estimate_regions_from_target_cameras()
+        self.face_one_hot = torch.nn.functional.one_hot(self.camera_estimated_face_ids, num_classes=6).float()
+        self.region_features = self._region_features(self.camera_estimated_region_ids)
+        self.camera_region_matches = self.target_stereo_visible & (self.camera_estimated_region_ids == self.region_ids)
         self.region_uv_error, self.in_target_region = self._compute_region_entry(self.gripper_center_pos)
         camera_delta = self.target_camera_features[:, [0, 1, 3, 4]] - self.gripper_camera_features[:, [0, 1, 3, 4]]
         self.camera_alignment_error = torch.linalg.norm(camera_delta, dim=-1)
-        self.target_stereo_visible = torch.all(self.target_camera_features[:, [2, 5]] > 0.5, dim=-1)
-        self.gripper_stereo_visible = torch.all(self.gripper_camera_features[:, [2, 5]] > 0.5, dim=-1)
+        self.target_left_visible = self.target_camera_features[:, 2] > 0.5
+        self.target_right_visible = self.target_camera_features[:, 5] > 0.5
+        self.gripper_left_visible = self.gripper_camera_features[:, 2] > 0.5
+        self.gripper_right_visible = self.gripper_camera_features[:, 5] > 0.5
+        self.target_stereo_visible = self.target_left_visible & self.target_right_visible
+        self.gripper_stereo_visible = self.gripper_left_visible & self.gripper_right_visible
 
     def _compute_plane_error(self, points: torch.Tensor) -> torch.Tensor:
         if self.cfg.front_face_region_targets:
@@ -714,13 +821,14 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         return errors
 
     def _compute_region_entry(self, points: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        target_uv = self.target_camera_features[:, [0, 1, 3, 4]]
+        estimated_target_camera_features = self._project_to_stereo(self.camera_estimated_target_pos)
+        target_uv = estimated_target_camera_features[:, [0, 1, 3, 4]]
         gripper_uv = self.gripper_camera_features[:, [0, 1, 3, 4]]
         camera_region_error = torch.linalg.norm(target_uv - gripper_uv, dim=-1)
 
         left_entry = self._same_camera_cell(target_uv[:, 0:2], gripper_uv[:, 0:2])
         right_entry = self._same_camera_cell(target_uv[:, 2:4], gripper_uv[:, 2:4])
-        return camera_region_error, left_entry & right_entry
+        return camera_region_error, left_entry & right_entry & self.target_stereo_visible
 
     def _same_camera_cell(self, target_uv: torch.Tensor, gripper_uv: torch.Tensor) -> torch.Tensor:
         target_norm = ((target_uv + 1.0) * 0.5).clamp(0.0, 0.999999)
@@ -768,14 +876,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         return torch.cat([left, right], dim=-1)
 
     def _project_to_camera(self, points: torch.Tensor, camera_pos: torch.Tensor) -> torch.Tensor:
-        look_at = torch.tensor(self.cfg.camera_look_at, device=self.device)
-        forward = look_at - camera_pos
-        forward = forward / torch.clamp(torch.linalg.norm(forward), min=1e-6)
-        world_up = torch.tensor((0.0, 0.0, 1.0), device=self.device)
-        right = torch.cross(forward, world_up, dim=0)
-        right = right / torch.clamp(torch.linalg.norm(right), min=1e-6)
-        up = torch.cross(right, forward, dim=0)
-        up = up / torch.clamp(torch.linalg.norm(up), min=1e-6)
+        forward, right, up = self._camera_basis(camera_pos)
 
         rel = points - camera_pos
         depth = torch.sum(rel * forward, dim=-1)

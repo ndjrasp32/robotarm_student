@@ -76,6 +76,13 @@
 4. 학습은 estimated region 기반 보상으로 다시 실행한다. / Rerun training with reward based on estimated region.
 5. 시연 영상은 true/generated region과 camera-estimated region overlay를 모두 넣되, policy 접근은 camera estimate만 사용한다. / Generate demo video with both true/generated and camera-estimated overlays, while the policy uses only the camera estimate.
 
+## 코드 반영 메모 / Implementation Note
+
+- `MT4CoordinateCurriculumEnv`는 생성된 `region_ids`를 정답 라벨과 마스터리 집계용으로 유지한다. / `MT4CoordinateCurriculumEnv` keeps generated `region_ids` only for ground-truth labels and mastery accounting.
+- 정책 입력의 `region_features`와 `face_one_hot`은 두 카메라 projection을 triangulation해서 얻은 `camera_estimated_region_ids` 기준으로 갱신한다. / Policy-input `region_features` and `face_one_hot` are updated from `camera_estimated_region_ids`, computed by triangulating the two camera projections.
+- 보상과 성공 판단의 영역 진입은 카메라 추정 영역 중심을 기준으로 계산하고, 최종 3cm 검증 거리는 생성된 실제 target center 기준으로 유지한다. / Region-entry reward and success gating use the camera-estimated region center, while the final 3 cm validation distance remains measured against the generated true target center.
+- TensorBoard 로그에 `camera_region_match_rate`, 좌/우 카메라 visibility, true region number와 camera-estimated region number를 함께 남긴다. / TensorBoard logs now include `camera_region_match_rate`, left/right camera visibility, and both true and camera-estimated region numbers.
+
 ## 승격 규칙 / Promotion Rule
 
 이 계획은 실제 로봇 motion을 바로 수행하지 않는다. / This plan does not run real robot motion directly.
