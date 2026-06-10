@@ -13,6 +13,7 @@ from .mt4_coordinate_curriculum_env import (
     MT4CoordinateCurriculumEnv,
     MT4CoordinatePlaneEnvCfg,
     MT4CoordinateSphereEnvCfg,
+    MT4CoordinateVolumePrecisionEnvCfg,
     MT4CoordinateVolumeEnvCfg,
     MT4CoordinateWorkspaceEntryEnvCfg,
 )
@@ -51,6 +52,7 @@ _COORDINATE_CURRICULUM_TASKS = {
     "Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0": MT4CoordinateWorkspaceEntryEnvCfg,
     "Isaac-MT4-Coordinate-Plane-Direct-v0": MT4CoordinatePlaneEnvCfg,
     "Isaac-MT4-Coordinate-Volume-Direct-v0": MT4CoordinateVolumeEnvCfg,
+    "Isaac-MT4-Coordinate-Volume-Precision-Direct-v0": MT4CoordinateVolumePrecisionEnvCfg,
     "Isaac-MT4-Coordinate-Sphere-Direct-v0": MT4CoordinateSphereEnvCfg,
 }
 

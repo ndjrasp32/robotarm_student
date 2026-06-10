@@ -20,6 +20,8 @@
 6. [20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md](20260610_140823_run_three_camera_target_tracking_1cm_1500iter.md)
 7. [20260610_143523_plan_volume_3x3x3_region_training.md](20260610_143523_plan_volume_3x3x3_region_training.md)
 8. [20260610_143719_run_volume_3x3x3_failure_reach_audit.md](20260610_143719_run_volume_3x3x3_failure_reach_audit.md)
+9. [20260610_163317_run_reach_limited_volume_region19_failure.md](20260610_163317_run_reach_limited_volume_region19_failure.md)
+10. [20260610_171626_reach_limited_27_success_analysis_and_precision_plan.md](20260610_171626_reach_limited_27_success_analysis_and_precision_plan.md)
 
 ## Current Setup / 현재 설정
 
@@ -43,7 +45,7 @@
 | task / 태스크 | `Isaac-MT4-Coordinate-Volume-Direct-v0` |
 | training script / 학습 스크립트 | `scripts/train_coordinate_stage1_volume_128_1500_video.sh` |
 | region split / 영역 분할 | `3x3x3`, 27 workspace cells |
-| reach-limited workspace / 가동범위 기반 박스 | center `(0.30, 0.00, 0.21)`, size `(0.12, 0.16, 0.12)` |
+| reach-limited workspace / 가동범위 기반 박스 | center `(0.305, 0.00, 0.205)`, size `(0.09, 0.14, 0.09)` |
 | region mastery gate / 영역 통과 기준 | 10 strict 1 cm successes per volume cell |
 | expected metric / 기대 지표 | `mastered_region_count` should progress toward 27 |
 

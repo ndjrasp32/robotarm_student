@@ -210,7 +210,17 @@ def main() -> None:
     plots: dict[str, Path] = {}
     plot_specs = {
         "reward": ["Train/mean_reward", "mean_reward"],
-        "success": ["success_rate", "center_1cm_rate", "center_3cm_rate", "near_center_7cm_rate", "strict_region_center_success_rate"],
+        "success": [
+            "success_rate",
+            "center_success_radius_rate",
+            "center_1cm_rate",
+            "center_3cm_rate",
+            "fine_center_radius_rate",
+            "fine_center_4cm_rate",
+            "near_center_radius_rate",
+            "near_center_7cm_rate",
+            "strict_region_center_success_rate",
+        ],
         "region_progress": ["active_region_number", "mastered_region_count"],
         "distance": ["mean_distance", "mean_plane_error", "mean_workspace_entry_error", "mean_target_overshoot"],
         "camera": [
@@ -218,9 +228,11 @@ def main() -> None:
             "camera_region_entry_rate",
             "mean_camera_alignment_error",
             "mean_gripper_camera_target_error",
+            "mean_gripper_camera_direction_error",
             "mean_preferred_approach_error",
             "target_gripper_camera_visible_rate",
             "target_three_camera_visible_rate",
+            "three_camera_ready_rate",
         ],
         "visibility": ["stereo_visible_rate", "inside_workspace_rate"],
         "per_region": ["region_", "success_count", "batch_success_rate"],
@@ -241,6 +253,13 @@ def main() -> None:
     metric_tags = {
         "mean_reward": find_one(tags, ["Train/mean_reward", "mean_reward"]),
         "success_rate": find_one(tags, ["coordinate_curriculum/plane_localization_success_rate"]),
+        "center_success_radius_rate": find_one(
+            tags,
+            [
+                "coordinate_curriculum/plane_localization_center_success_radius_rate",
+                "coordinate_curriculum/plane_localization_center_1cm_rate",
+            ],
+        ),
         "center_1cm_rate": find_one(
             tags,
             [
@@ -248,7 +267,24 @@ def main() -> None:
                 "coordinate_curriculum/plane_localization_center_3cm_rate",
             ],
         ),
+        "fine_center_4cm_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_fine_center_4cm_rate"]
+        ),
+        "fine_center_radius_rate": find_one(
+            tags,
+            [
+                "coordinate_curriculum/plane_localization_fine_center_radius_rate",
+                "coordinate_curriculum/plane_localization_fine_center_4cm_rate",
+            ],
+        ),
         "near_center_7cm_rate": find_one(tags, ["coordinate_curriculum/plane_localization_near_center_7cm_rate"]),
+        "near_center_radius_rate": find_one(
+            tags,
+            [
+                "coordinate_curriculum/plane_localization_near_center_radius_rate",
+                "coordinate_curriculum/plane_localization_near_center_7cm_rate",
+            ],
+        ),
         "strict_region_center_success_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_strict_region_center_success_rate"]
         ),
@@ -266,6 +302,9 @@ def main() -> None:
         "preferred_approach_error_m": find_one(
             tags, ["coordinate_curriculum/plane_localization_mean_preferred_approach_error"]
         ),
+        "gripper_camera_direction_error": find_one(
+            tags, ["coordinate_curriculum/plane_localization_mean_gripper_camera_direction_error"]
+        ),
         "inside_workspace_rate": find_one(tags, ["coordinate_curriculum/plane_localization_inside_workspace_rate"]),
         "target_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_target_stereo_visible_rate"]
@@ -275,6 +314,9 @@ def main() -> None:
         ),
         "target_three_camera_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_target_three_camera_visible_rate"]
+        ),
+        "three_camera_ready_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_three_camera_ready_rate"]
         ),
         "gripper_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_gripper_stereo_visible_rate"]
@@ -325,7 +367,11 @@ def main() -> None:
         "| --- | ---: |",
         f"| mean_reward | {format_value(metrics['mean_reward'])} |",
         f"| success_rate | {format_value(metrics['success_rate'])} |",
+        f"| center_success_radius_rate | {format_value(metrics['center_success_radius_rate'])} |",
         f"| center_1cm_rate | {format_value(metrics['center_1cm_rate'])} |",
+        f"| fine_center_radius_rate | {format_value(metrics['fine_center_radius_rate'])} |",
+        f"| fine_center_4cm_rate | {format_value(metrics['fine_center_4cm_rate'])} |",
+        f"| near_center_radius_rate | {format_value(metrics['near_center_radius_rate'])} |",
         f"| near_center_7cm_rate | {format_value(metrics['near_center_7cm_rate'])} |",
         f"| strict_region_center_success_rate | {format_value(metrics['strict_region_center_success_rate'])} |",
         f"| mean_distance | {format_value(metrics['mean_distance_m'])} m ({final_distance_cm:.2f} cm) |",
@@ -334,10 +380,12 @@ def main() -> None:
         f"| target_estimate_error | {format_value(metrics['target_estimate_error_m'])} m |",
         f"| target_overshoot | {format_value(metrics['target_overshoot_m'])} m |",
         f"| preferred_approach_error | {format_value(metrics['preferred_approach_error_m'])} m |",
+        f"| gripper_camera_direction_error | {format_value(metrics['gripper_camera_direction_error'])} |",
         f"| inside_workspace_rate | {format_value(metrics['inside_workspace_rate'])} |",
         f"| target_stereo_visible_rate | {format_value(metrics['target_stereo_visible_rate'])} |",
         f"| target_gripper_camera_visible_rate | {format_value(metrics['target_gripper_camera_visible_rate'])} |",
         f"| target_three_camera_visible_rate | {format_value(metrics['target_three_camera_visible_rate'])} |",
+        f"| three_camera_ready_rate | {format_value(metrics['three_camera_ready_rate'])} |",
         f"| gripper_stereo_visible_rate | {format_value(metrics['gripper_stereo_visible_rate'])} |",
         f"| active_region_number | {active_region} |",
         f"| mastered_region_count | {mastered_count} |",
@@ -390,7 +438,7 @@ def main() -> None:
             "",
             "Codex 구현 / Codex implementation:",
             "",
-            "- Stage 1 순차 9영역 학습을 실행했다. / Ran Stage 1 sequential 9-region training.",
+            "- Stage 1 순차 좌표 영역 커리큘럼 학습을 실행했다. / Ran Stage 1 sequential coordinate-region curriculum training.",
             "- 타겟 생성 좌표와 정책 입력 영역을 분리했다. / Separated target-generation coordinates from the policy-input region.",
             "- 정책 입력의 영역 feature는 몸체 좌/우 스테레오 projection에서 추정한 영역으로 만들었다. / Built the policy-input region feature from the body left/right stereo projection.",
             "- 몸체 좌/우 스테레오 projection으로 추정한 목표 상대좌표를 정책 입력에 추가했다. / Added the body-stereo-estimated target-relative position to the policy observation.",
