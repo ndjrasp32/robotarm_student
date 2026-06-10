@@ -10,6 +10,7 @@ echo "[INFO] Stage 1 three-camera coordinate baseline"
 echo "[INFO] body stereo cameras: left/right fixed virtual cameras"
 echo "[INFO] gripper camera: target u/v/depth/visible projection in the policy observation"
 echo "[INFO] region mastery requires 10 strict successes per region"
+echo "[INFO] strict success distance is 0.010 m with target overshoot penalty"
 echo "[INFO] training videos default to 3600 steps, about 60 seconds at 60 Hz"
 
 "${HOME}/work/robotarm/robotarm_student/scripts/train_coordinate_stage1_plane_128_500.sh" \

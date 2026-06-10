@@ -148,7 +148,7 @@ def plot_region_mastery(rows: list[dict[str, str]], out_path: Path) -> bool:
     plt.axhline(10, color="#d62828", linestyle="--", linewidth=1.2, label="mastery threshold")
     plt.title("Coordinate Region Mastery Counts")
     plt.xlabel("region number")
-    plt.ylabel("strict 3 cm successes")
+    plt.ylabel("strict 1 cm successes")
     plt.xticks(regions)
     plt.grid(True, axis="y", alpha=0.35)
     plt.legend()
@@ -210,14 +210,15 @@ def main() -> None:
     plots: dict[str, Path] = {}
     plot_specs = {
         "reward": ["Train/mean_reward", "mean_reward"],
-        "success": ["success_rate", "center_3cm_rate", "near_center_7cm_rate", "strict_region_center_success_rate"],
+        "success": ["success_rate", "center_1cm_rate", "center_3cm_rate", "near_center_7cm_rate", "strict_region_center_success_rate"],
         "region_progress": ["active_region_number", "mastered_region_count"],
-        "distance": ["mean_distance", "mean_plane_error", "mean_workspace_entry_error"],
+        "distance": ["mean_distance", "mean_plane_error", "mean_workspace_entry_error", "mean_target_overshoot"],
         "camera": [
             "mean_camera_region_error",
             "camera_region_entry_rate",
             "mean_camera_alignment_error",
             "mean_gripper_camera_target_error",
+            "mean_preferred_approach_error",
             "target_gripper_camera_visible_rate",
             "target_three_camera_visible_rate",
         ],
@@ -240,7 +241,13 @@ def main() -> None:
     metric_tags = {
         "mean_reward": find_one(tags, ["Train/mean_reward", "mean_reward"]),
         "success_rate": find_one(tags, ["coordinate_curriculum/plane_localization_success_rate"]),
-        "center_3cm_rate": find_one(tags, ["coordinate_curriculum/plane_localization_center_3cm_rate"]),
+        "center_1cm_rate": find_one(
+            tags,
+            [
+                "coordinate_curriculum/plane_localization_center_1cm_rate",
+                "coordinate_curriculum/plane_localization_center_3cm_rate",
+            ],
+        ),
         "near_center_7cm_rate": find_one(tags, ["coordinate_curriculum/plane_localization_near_center_7cm_rate"]),
         "strict_region_center_success_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_strict_region_center_success_rate"]
@@ -254,6 +261,10 @@ def main() -> None:
         ),
         "target_estimate_error_m": find_one(
             tags, ["coordinate_curriculum/plane_localization_mean_target_estimate_error"]
+        ),
+        "target_overshoot_m": find_one(tags, ["coordinate_curriculum/plane_localization_mean_target_overshoot"]),
+        "preferred_approach_error_m": find_one(
+            tags, ["coordinate_curriculum/plane_localization_mean_preferred_approach_error"]
         ),
         "inside_workspace_rate": find_one(tags, ["coordinate_curriculum/plane_localization_inside_workspace_rate"]),
         "target_stereo_visible_rate": find_one(
@@ -291,10 +302,12 @@ def main() -> None:
         "",
         "## 목표 / Goal",
         "",
-        "Stage 1 학습을 다시 실행하되 엄격한 성공 조건은 동일하게 유지한다. / Rerun Stage 1 while keeping the same strict success rule:",
+        "Stage 1 학습을 새 1cm 엄격 성공 조건으로 다시 실행한다. / Rerun Stage 1 with the new strict 1 cm success rule:",
         "",
         "- 목표와 같은 스테레오 카메라 영역에 진입 / same stereo camera region as the target",
-        "- 그리퍼 중심이 영역 중심 목표에서 `0.030 m` 이내 / gripper center within `0.030 m` of the region center target",
+        "- 그리퍼 중심이 영역 중심 목표에서 `0.010 m` 이내 / gripper center within `0.010 m` of the region center target",
+        "- 목표를 지나친 뒤 돌아오는 움직임은 벌점으로 줄인다. / Penalize motion that passes beyond the target and comes back.",
+        "- 가능하면 로봇 쪽이나 위쪽에서 목표로 접근한다. / Prefer approaching the target from the robot side or from above.",
         "- 목표와 그리퍼가 양쪽 가상 카메라에서 보임 / target and gripper visible from both virtual cameras",
         "",
         "## 실행 / Run",
@@ -312,13 +325,15 @@ def main() -> None:
         "| --- | ---: |",
         f"| mean_reward | {format_value(metrics['mean_reward'])} |",
         f"| success_rate | {format_value(metrics['success_rate'])} |",
-        f"| center_3cm_rate | {format_value(metrics['center_3cm_rate'])} |",
+        f"| center_1cm_rate | {format_value(metrics['center_1cm_rate'])} |",
         f"| near_center_7cm_rate | {format_value(metrics['near_center_7cm_rate'])} |",
         f"| strict_region_center_success_rate | {format_value(metrics['strict_region_center_success_rate'])} |",
         f"| mean_distance | {format_value(metrics['mean_distance_m'])} m ({final_distance_cm:.2f} cm) |",
         f"| camera_region_entry_rate | {format_value(metrics['camera_region_entry_rate'])} |",
         f"| camera_region_match_rate | {format_value(metrics['camera_region_match_rate'])} |",
         f"| target_estimate_error | {format_value(metrics['target_estimate_error_m'])} m |",
+        f"| target_overshoot | {format_value(metrics['target_overshoot_m'])} m |",
+        f"| preferred_approach_error | {format_value(metrics['preferred_approach_error_m'])} m |",
         f"| inside_workspace_rate | {format_value(metrics['inside_workspace_rate'])} |",
         f"| target_stereo_visible_rate | {format_value(metrics['target_stereo_visible_rate'])} |",
         f"| target_gripper_camera_visible_rate | {format_value(metrics['target_gripper_camera_visible_rate'])} |",
@@ -365,7 +380,10 @@ def main() -> None:
             "",
             "사용자 제안 / User proposal:",
             "",
-            "- 거리 기준은 `0.030 m`로 고정한다. / Keep the distance criterion fixed at `0.030 m`.",
+            "- 거리 기준은 `0.010 m`로 강화한다. / Tighten the distance criterion to `0.010 m`.",
+            "- 추적 보상은 실제 로봇팔 그리퍼와 목표 지점 사이의 거리에 집중한다. / Focus tracking reward on the actual gripper-to-target distance.",
+            "- 목표를 지나쳤다가 돌아오는 방식은 벌점으로 낮춘다. / Penalize overshooting the target and returning.",
+            "- 가능한 접근 방향은 로봇 쪽 또는 위쪽에서 목표로 들어오게 한다. / Prefer target approach from the robot side or from above.",
             "- 성공을 하나의 전체 성공률이 아니라 번호가 붙은 영역 마스터리로 본다. / Treat success as numbered region mastery, not as one global success rate.",
             "- 한 정책을 영역에서 영역으로 이어서 학습하고, 영역별 최고 행동 기록을 보존한다. / Continue one policy from region to region and preserve the best behavior record per region.",
             "- 학생들이 실제 학습 장면과 결과를 볼 수 있도록 시각화한다. / Visualize the run so students can inspect what the agent actually learned.",
@@ -378,8 +396,9 @@ def main() -> None:
             "- 몸체 좌/우 스테레오 projection으로 추정한 목표 상대좌표를 정책 입력에 추가했다. / Added the body-stereo-estimated target-relative position to the policy observation.",
             "- 세 번째 그리퍼 카메라 projection을 관측과 보상 로그에 추가했다. / Added the third gripper-camera projection to observations and reward logs.",
             "- 목표 중심으로 가도록 보상 신호를 더 직접적으로 넣었다. / Added a more direct reward signal for moving to the target center.",
+            "- 목표를 지나친 정도와 선호 접근 방향 오차를 로그로 남긴다. / Logged target overshoot and preferred approach error.",
             "- 랜덤 데모에서 목표를 바꾼 뒤 정책 관측도 즉시 새로 읽도록 수정했다. / Fixed the random demo so observations refresh immediately after a target override.",
-            "- 엄격한 3cm 성공 조건은 바꾸지 않았다. / Kept the strict 3 cm success rule unchanged.",
+            "- 엄격한 성공 조건을 3cm에서 1cm로 강화했다. / Tightened the strict success rule from 3 cm to 1 cm.",
             "- Gym `RecordVideo`로 학습 영상을 기록했다. / Recorded training video through Gym `RecordVideo`.",
             "- 좌표 전용 TensorBoard 그래프, 최종 지표 CSV, 체크포인트 CSV, 이 리포트를 생성했다. / Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",
             "",
@@ -390,7 +409,7 @@ def main() -> None:
             "- `camera_region_match_rate`는 생성된 정답 영역과 카메라 추정 영역의 일치 여부를 보여준다. / `camera_region_match_rate` shows whether the generated true region matches the camera-estimated region.",
             "- `target_estimate_error`는 카메라로 추정한 목표 위치가 실제 목표와 얼마나 가까운지 보여준다. / `target_estimate_error` shows how close the camera-estimated target point is to the true target.",
             "- 최종 `success_rate`는 마지막 로깅 배치 기준이라 영역별 누적 성공을 과소평가할 수 있다. / The final `success_rate` is batch-local and can understate cumulative per-region progress.",
-            "- 거리 기준은 완화하지 않았다. 마스터된 모든 영역은 같은 3cm 엄격 조건으로 집계된다. / The distance criterion was not relaxed. Every mastered region is counted with the same 3 cm strict success rule.",
+            "- 거리 기준은 완화하지 않았다. 마스터된 모든 영역은 같은 1cm 엄격 조건으로 집계된다. / The distance criterion was not relaxed. Every mastered region is counted with the same 1 cm strict success rule.",
             "- 이번 수정의 목적은 실제 시연 접근 선택을 생성 좌표가 아니라 카메라 추정 영역에 의존하게 만드는 것이다. / This update makes demo approach selection depend on the camera-estimated region instead of generated coordinates.",
             "",
             f"Generated at `{datetime.now().isoformat(timespec='seconds')}`.",

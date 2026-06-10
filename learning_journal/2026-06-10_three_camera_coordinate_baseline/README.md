@@ -16,6 +16,7 @@
 2. [20260610_111518_run_three_camera_coordinate_baseline_1500iter.md](20260610_111518_run_three_camera_coordinate_baseline_1500iter.md)
 3. [20260610_114129_plan_success10_video1min_demo_check.md](20260610_114129_plan_success10_video1min_demo_check.md)
 4. [20260610_130106_plan_target_tracking_rerun.md](20260610_130106_plan_target_tracking_rerun.md)
+5. [20260610_131608_plan_1cm_overshoot_approach_reward.md](20260610_131608_plan_1cm_overshoot_approach_reward.md)
 
 ## Current Setup / 현재 설정
 
@@ -26,9 +27,11 @@
 | body cameras / 몸체 카메라 | fixed left/right stereo projection |
 | gripper camera / 그리퍼 카메라 | target `u/v/depth/visible` projection from gripper frame |
 | policy observation / 정책 관측 | 54 values after target-tracking update |
-| strict success / 엄격 성공 | same camera region and target center within `0.030 m` |
+| strict success / 엄격 성공 | same camera region and target center within `0.010 m` |
 | region mastery gate / 영역 통과 기준 | 10 strict successes per region for new runs |
 | video rule / 영상 규칙 | about 1 minute for training and demo videos |
+| overshoot rule / 지나침 억제 | penalize moving past the target away from the robot |
+| approach rule / 접근 방향 | prefer approach from the robot side or from above |
 
 ## Current Fix / 현재 보정
 
@@ -41,6 +44,9 @@
 - KR: 랜덤 데모는 목표를 바꾼 직후 정책 관측도 바로 새로 읽도록 수정했다.
 - EN: The random demo now refreshes policy observations immediately after target changes.
 
+- KR: 이번 추가 보정은 성공 거리 기준을 1cm로 강화하고, 목표를 지나쳤다가 돌아오는 움직임을 줄이며, 로봇 쪽이나 위쪽에서 목표로 접근하도록 보상한다.
+- EN: The latest update tightens strict success to 1 cm, reduces overshoot-and-return behavior, and rewards approach from the robot side or from above.
+
 ## Evidence / 근거 자료
 
 - Run record / 실행 기록: [20260610_111518_run_three_camera_coordinate_baseline_1500iter.md](20260610_111518_run_three_camera_coordinate_baseline_1500iter.md)
@@ -51,5 +57,5 @@
 
 ## Next Step / 다음 단계
 
-- KR: 먼저 10회 성공 기준과 1분 영상 규칙으로 Stage 1을 다시 확인한다. 그 다음 7cm 근접 이후 3cm 중심 수렴률을 높이는 fine-tuning을 설계한다.
-- EN: First re-check Stage 1 with the 10-success gate and 1-minute video rule. Then design fine-tuning that improves convergence from 7 cm proximity to the 3 cm center target.
+- KR: 1cm 기준, overshoot 벌점, 접근 방향 보상을 넣은 Stage 1을 다시 학습하고 1분 학습 영상과 랜덤 데모 영상을 확인한다.
+- EN: Rerun Stage 1 with the 1 cm rule, overshoot penalty, and approach-direction reward, then review the 1-minute training and random demo videos.

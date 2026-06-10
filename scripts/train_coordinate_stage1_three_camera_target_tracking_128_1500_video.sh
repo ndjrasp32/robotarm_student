@@ -11,6 +11,8 @@ echo "[INFO] body stereo cameras estimate the target region and target point"
 echo "[INFO] gripper camera keeps target u/v/depth/visible in the policy observation"
 echo "[INFO] policy observation includes camera-estimated target-relative xyz"
 echo "[INFO] region mastery requires 10 strict successes per region"
+echo "[INFO] strict success distance is 0.010 m with target overshoot penalty"
+echo "[INFO] preferred target approach is from the robot side or from above"
 echo "[INFO] training videos default to 3600 steps, about 60 seconds at 60 Hz"
 
 "${HOME}/work/robotarm/robotarm_student/scripts/train_coordinate_stage1_plane_128_500.sh" \

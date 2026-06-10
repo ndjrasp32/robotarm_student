@@ -69,10 +69,10 @@ The active baseline restarts from the Mars rover MT4 manipulation plan. The firs
 The coordinate-plane curriculum is a student-side simulation path for learning the camera-frame front workspace before object approach:
 
 0. `Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0`: learn to move from home into the camera-visible workspace.
-1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, require same-region entry plus center approach within 3 cm, reset home, then advance after 10 strict successes in that region.
+1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, require same-region entry plus center approach within 1 cm, reset home, then advance after 10 strict successes in that region.
 2. `Isaac-MT4-Coordinate-Sphere-Direct-v0`: reuse the same three-camera coordinate observation and train the existing target-sphere reach behavior after the 9-region coordinate stage is stable.
 
-The current region-matching baseline keeps robot-frame coordinates only for target generation and validation. Training infers the target region from the body left/right stereo observations and also receives a gripper-mounted camera projection for target tracking.
+The current region-matching baseline keeps robot-frame coordinates only for target generation and validation. Training infers the target region from the body left/right stereo observations and also receives a gripper-mounted camera projection for target tracking. New target-tracking runs use a stricter 1 cm success distance, add an overshoot penalty, and prefer approach from the robot side or from above.
 
 Coordinate curriculum training uses `tools/train_mt4_coordinate_curriculum.py` so the task is registered from `robotarm_student/source` instead of the hardware-transfer repo or stale IsaacLab copies.
 
