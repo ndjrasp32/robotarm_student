@@ -27,6 +27,7 @@ Date: 2026-06-10 KST
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
 - coordinate region mastery plan: `notes/20260610_coordinate_region_mastery_plan.md`
+- camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger simplified asset 생성: `scripts/create_two_finger_asset.sh`
@@ -41,7 +42,7 @@ Date: 2026-06-10 KST
 
 첫 실용 검증 대상은 `push` 또는 `pull`입니다. 두 미션은 완전한 grasp 모델에 의존하기 전에 동적 물체 접촉과 reset 동작을 먼저 증명할 수 있습니다.
 
-추가 curriculum은 로봇팔 전면 작업공간을 두 대의 고정 가상 카메라가 본 정규화 좌표로 학습합니다.
+추가 curriculum은 로봇팔 전면 작업공간을 두 대의 고정 가상 카메라가 본 정규화 좌표로 학습합니다. 타겟 생성에는 로봇 기준 좌표를 쓰지만, 정책 관측과 시연 접근 선택에는 생성 좌표를 넣지 않고 카메라 기반 추정 영역만 사용합니다.
 
 0. Stage 0: 홈 자세에서 카메라 가시 작업공간 안으로 진입하는 warm-up을 학습한다.
 1. Stage 1: 전면 카메라 평면을 3x3 영역으로 나눠 1-9번을 부여하고, 같은 카메라 영역에 들어가면서 영역 중심 3cm 이내로 접근하면 성공으로 본다. 한 영역이 strict success를 5회 달성하면 같은 policy로 다음 번호를 이어서 학습한다.
@@ -117,6 +118,7 @@ The active direction restarts from the Mars rover MT4 manipulation plan.
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
 - coordinate region mastery plan: `notes/20260610_coordinate_region_mastery_plan.md`
+- camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
 - Mars twin viewer: `scripts/view_mars_twin.sh`
 - two-finger simplified asset generation: `scripts/create_two_finger_asset.sh`
@@ -131,7 +133,7 @@ The missions are split into:
 
 The first practical validation target should be `push` or `pull`, because those missions can prove dynamic-object contact and reset behavior before relying on a complete grasp model.
 
-The additional curriculum learns the front robot workspace through normalized observations from two fixed virtual cameras.
+The additional curriculum learns the front robot workspace through normalized observations from two fixed virtual cameras. Target generation may use robot-frame coordinates, but policy observations and demo approach selection must not receive those generation coordinates; they use only the camera-estimated region.
 
 0. Stage 0 learns home-to-camera-visible-workspace entry as a warm-up.
 1. Stage 1 splits the front camera plane into 3x3 regions, numbers them 1-9, and treats a region as successful only when the gripper is in the same camera region and within 3 cm of the region center. After 5 strict successes in one region, the same policy continues into the next number.
