@@ -22,6 +22,7 @@
 8. [20260610_143719_run_volume_3x3x3_failure_reach_audit.md](20260610_143719_run_volume_3x3x3_failure_reach_audit.md)
 9. [20260610_163317_run_reach_limited_volume_region19_failure.md](20260610_163317_run_reach_limited_volume_region19_failure.md)
 10. [20260610_171626_reach_limited_27_success_analysis_and_precision_plan.md](20260610_171626_reach_limited_27_success_analysis_and_precision_plan.md)
+11. [20260610_175400_run_volume_precision_5mm_800iter.md](20260610_175400_run_volume_precision_5mm_800iter.md)
 
 ## Current Setup / 현재 설정
 
