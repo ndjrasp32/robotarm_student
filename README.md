@@ -28,7 +28,8 @@
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
 - student learning journal: `learning_journal/README.md`
-- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
+- active three-camera coordinate thread: `learning_journal/2026-06-10_three_camera_coordinate_baseline/README.md`
+- camera-only region archive: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`
@@ -68,10 +69,10 @@ The active baseline restarts from the Mars rover MT4 manipulation plan. The firs
 The coordinate-plane curriculum is a student-side simulation path for learning the camera-frame front workspace before object approach:
 
 0. `Isaac-MT4-Coordinate-Workspace-Entry-Direct-v0`: learn to move from home into the camera-visible workspace.
-1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, require same-region entry plus center approach within 3 cm, reset home, then advance after enough strict successes.
-2. `Isaac-MT4-Coordinate-Sphere-Direct-v0`: reuse the same stereo coordinate observation and train the existing target-sphere reach behavior after the 9-region coordinate stage is stable.
+1. `Isaac-MT4-Coordinate-Plane-Direct-v0`: split the front camera plane into 3x3 regions, number them 1-9, require same-region entry plus center approach within 3 cm, reset home, then advance after 10 strict successes in that region.
+2. `Isaac-MT4-Coordinate-Sphere-Direct-v0`: reuse the same three-camera coordinate observation and train the existing target-sphere reach behavior after the 9-region coordinate stage is stable.
 
-The next region-matching update keeps robot-frame coordinates only for target generation and validation. Training and demo approach selection must infer the target region from the two camera observations, then use that camera-estimated region as the policy condition.
+The current region-matching baseline keeps robot-frame coordinates only for target generation and validation. Training infers the target region from the body left/right stereo observations and also receives a gripper-mounted camera projection for target tracking.
 
 Coordinate curriculum training uses `tools/train_mt4_coordinate_curriculum.py` so the task is registered from `robotarm_student/source` instead of the hardware-transfer repo or stale IsaacLab copies.
 
@@ -88,7 +89,8 @@ The working baseline was reset on 2026-05-22. The previous state had too many da
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1 training: `scripts/train_coordinate_stage1_plane_128_500.sh`
 - student learning journal: `learning_journal/README.md`
-- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
+- active three-camera coordinate thread: `learning_journal/2026-06-10_three_camera_coordinate_baseline/README.md`
+- camera-only region archive: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery note: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2 training: `scripts/train_coordinate_stage2_sphere_128_800.sh`

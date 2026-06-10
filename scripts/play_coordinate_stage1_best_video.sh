@@ -29,6 +29,6 @@ echo "[INFO] checkpoint=${CHECKPOINT}"
   --num_envs "${MT4_PLAY_NUM_ENVS:-1}" \
   --checkpoint "${CHECKPOINT}" \
   --video \
-  --video_length "${MT4_PLAY_VIDEO_LENGTH:-360}" \
+  --video_length "${MT4_PLAY_VIDEO_LENGTH:-3600}" \
   --headless \
   --seed "${MT4_SEED:-42}"

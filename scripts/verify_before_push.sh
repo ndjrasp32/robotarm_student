@@ -54,6 +54,7 @@ bash -n scripts/train_128_1000.sh \
   scripts/train_coordinate_stage0_workspace_entry_128_300.sh \
   scripts/train_coordinate_stage1_plane_128_500.sh \
   scripts/train_coordinate_stage1_plane_128_1500_video.sh \
+  scripts/train_coordinate_stage1_three_camera_baseline_128_1500_video.sh \
   scripts/train_coordinate_stage2_sphere_128_800.sh \
   scripts/play_coordinate_stage1_best_video.sh \
   scripts/verify_before_push.sh

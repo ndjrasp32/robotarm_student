@@ -92,7 +92,10 @@ def main() -> int:
 
     print(f"[INFO] Running {task}", flush=True)
     print("[INFO] Green marker is the sampled target. Blue marker appears on success.", flush=True)
-    print("[INFO] Policy observation includes normalized projections from two virtual cameras.", flush=True)
+    print(
+        "[INFO] Policy observation includes body stereo projections plus a gripper-mounted camera projection.",
+        flush=True,
+    )
     if args.stage == "plane" and args.target_interval > 0.0:
         print(
             f"[INFO] Plane viewer advances to the next numbered region every {args.target_interval:.1f}s.",

@@ -213,7 +213,14 @@ def main() -> None:
         "success": ["success_rate", "center_3cm_rate", "near_center_7cm_rate", "strict_region_center_success_rate"],
         "region_progress": ["active_region_number", "mastered_region_count"],
         "distance": ["mean_distance", "mean_plane_error", "mean_workspace_entry_error"],
-        "camera": ["mean_camera_region_error", "camera_region_entry_rate", "mean_camera_alignment_error"],
+        "camera": [
+            "mean_camera_region_error",
+            "camera_region_entry_rate",
+            "mean_camera_alignment_error",
+            "mean_gripper_camera_target_error",
+            "target_gripper_camera_visible_rate",
+            "target_three_camera_visible_rate",
+        ],
         "visibility": ["stereo_visible_rate", "inside_workspace_rate"],
         "per_region": ["region_", "success_count", "batch_success_rate"],
     }
@@ -248,6 +255,12 @@ def main() -> None:
         "inside_workspace_rate": find_one(tags, ["coordinate_curriculum/plane_localization_inside_workspace_rate"]),
         "target_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_target_stereo_visible_rate"]
+        ),
+        "target_gripper_camera_visible_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_target_gripper_camera_visible_rate"]
+        ),
+        "target_three_camera_visible_rate": find_one(
+            tags, ["coordinate_curriculum/plane_localization_target_three_camera_visible_rate"]
         ),
         "gripper_stereo_visible_rate": find_one(
             tags, ["coordinate_curriculum/plane_localization_gripper_stereo_visible_rate"]
@@ -304,6 +317,8 @@ def main() -> None:
         f"| camera_region_match_rate | {format_value(metrics['camera_region_match_rate'])} |",
         f"| inside_workspace_rate | {format_value(metrics['inside_workspace_rate'])} |",
         f"| target_stereo_visible_rate | {format_value(metrics['target_stereo_visible_rate'])} |",
+        f"| target_gripper_camera_visible_rate | {format_value(metrics['target_gripper_camera_visible_rate'])} |",
+        f"| target_three_camera_visible_rate | {format_value(metrics['target_three_camera_visible_rate'])} |",
         f"| gripper_stereo_visible_rate | {format_value(metrics['gripper_stereo_visible_rate'])} |",
         f"| active_region_number | {active_region} |",
         f"| mastered_region_count | {mastered_count} |",
@@ -354,7 +369,8 @@ def main() -> None:
             "",
             "- Stage 1 순차 9영역 학습을 실행했다. / Ran Stage 1 sequential 9-region training.",
             "- 타겟 생성 좌표와 정책 입력 영역을 분리했다. / Separated target-generation coordinates from the policy-input region.",
-            "- 정책 입력의 영역 feature는 두 카메라 projection에서 추정한 영역으로 만들었다. / Built the policy-input region feature from the region estimated through two camera projections.",
+            "- 정책 입력의 영역 feature는 몸체 좌/우 스테레오 projection에서 추정한 영역으로 만들었다. / Built the policy-input region feature from the body left/right stereo projection.",
+            "- 세 번째 그리퍼 카메라 projection을 관측과 보상 로그에 추가했다. / Added the third gripper-camera projection to observations and reward logs.",
             "- 엄격한 3cm 성공 조건은 바꾸지 않았다. / Kept the strict 3 cm success rule unchanged.",
             "- Gym `RecordVideo`로 학습 영상을 기록했다. / Recorded training video through Gym `RecordVideo`.",
             "- 좌표 전용 TensorBoard 그래프, 최종 지표 CSV, 체크포인트 CSV, 이 리포트를 생성했다. / Generated coordinate-specific TensorBoard plots, final metrics CSV, checkpoint CSV, and this report.",

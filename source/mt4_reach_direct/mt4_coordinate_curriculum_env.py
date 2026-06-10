@@ -29,7 +29,7 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     episode_length_s = 6.0
 
     action_space = 5
-    observation_space = 47
+    observation_space = 51
     state_space = 0
 
     curriculum_stage = "plane_localization"
@@ -115,7 +115,7 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     center_success_radius = 0.030
     region_success_margin_fraction = 0.20
     master_regions_sequentially = False
-    region_mastery_successes = 5
+    region_mastery_successes = 10
     camera_alignment_success = 0.95
     workspace_center = (0.27, 0.0, 0.14)
     workspace_size = (0.18, 0.22, 0.16)
@@ -128,6 +128,10 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     right_camera_pos = (0.035, 0.255, 0.225)
     camera_look_at = (0.27, 0.0, 0.14)
     camera_fov_deg = 72.0
+    gripper_camera_offset_b = (-0.035, 0.0, 0.018)
+    gripper_camera_fov_deg = 78.0
+    gripper_camera_min_depth = 0.020
+    gripper_camera_max_depth = 0.45
     face_region_shape = (3, 3)
     volume_region_shape = (3, 3, 3)
     front_face_region_targets = False
@@ -147,6 +151,9 @@ class MT4CoordinateCurriculumEnvCfg(DirectRLEnvCfg):
     workspace_entry_weight = 0.0
     camera_alignment_weight = 2.5
     camera_alignment_exp_scale = 5.0
+    gripper_camera_alignment_weight = 1.2
+    gripper_camera_alignment_exp_scale = 2.0
+    gripper_camera_visibility_weight = 0.8
     inside_workspace_weight = 0.8
     stereo_visibility_weight = 1.2
     success_bonus_weight = 18.0
@@ -160,7 +167,7 @@ class MT4CoordinatePlaneEnvCfg(MT4CoordinateCurriculumEnvCfg):
     curriculum_stage = "plane_localization"
     front_face_region_targets = True
     master_regions_sequentially = True
-    region_mastery_successes = 5
+    region_mastery_successes = 10
     camera_region_success_radius = 1.35
     center_success_radius = 0.030
     reach_weight = 5.0
@@ -174,6 +181,8 @@ class MT4CoordinatePlaneEnvCfg(MT4CoordinateCurriculumEnvCfg):
     near_center_weight = 10.0
     camera_alignment_weight = 5.0
     camera_alignment_exp_scale = 2.0
+    gripper_camera_alignment_weight = 1.5
+    gripper_camera_visibility_weight = 1.0
     inside_workspace_weight = 3.0
     stereo_visibility_weight = 0.5
     success_bonus_weight = 35.0
@@ -261,8 +270,12 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.in_target_region = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.workspace_entry_error = torch.zeros((self.num_envs,), device=self.device)
         self.camera_alignment_error = torch.zeros((self.num_envs,), device=self.device)
+        self.gripper_camera_target_error = torch.zeros((self.num_envs,), device=self.device)
+        self.gripper_camera_target_depth = torch.zeros((self.num_envs,), device=self.device)
         self.inside_workspace = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_stereo_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.target_three_camera_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
+        self.target_gripper_camera_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.gripper_stereo_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_left_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_right_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
@@ -270,6 +283,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.gripper_right_visible = torch.zeros((self.num_envs,), dtype=torch.bool, device=self.device)
         self.target_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
         self.gripper_camera_features = torch.zeros((self.num_envs, 6), device=self.device)
+        self.target_gripper_camera_features = torch.zeros((self.num_envs, 4), device=self.device)
         self.episode_rewards = torch.zeros((self.num_envs,), device=self.device)
 
         self.target_markers = VisualizationMarkers(self.cfg.target_marker_cfg)
@@ -318,6 +332,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
                 self.gripper_forward,
                 self.target_camera_features,
                 self.gripper_camera_features,
+                self.target_gripper_camera_features,
                 self.face_one_hot,
                 self.region_features,
                 self.actions,
@@ -343,6 +358,11 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         camera_alignment_reward = torch.exp(
             -self.cfg.camera_alignment_exp_scale * self.camera_alignment_error * self.camera_alignment_error
         )
+        gripper_camera_alignment_reward = torch.exp(
+            -self.cfg.gripper_camera_alignment_exp_scale
+            * self.gripper_camera_target_error
+            * self.gripper_camera_target_error
+        )
         stereo_visible = self.target_stereo_visible & self.gripper_stereo_visible
         action_penalty = torch.sum(self.actions * self.actions, dim=-1)
         joint_vel = self.robot.data.joint_vel[:, self.joint_ids]
@@ -359,12 +379,14 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
                 -4.0 * self.distance
                 -3.0 * self.plane_error
                 -1.2 * self.camera_alignment_error
+                -0.8 * self.gripper_camera_target_error
                 -2.0 * self.workspace_entry_error
                 + 4.0 * center_reward
                 + 8.0 * self.in_target_region.float()
                 + self.cfg.near_center_weight * near_center_reward
                 + 3.0 * self.inside_workspace.float()
                 + 0.5 * stereo_visible.float()
+                + self.cfg.gripper_camera_visibility_weight * self.target_gripper_camera_visible.float()
                 + self.cfg.success_bonus_weight * success.float()
                 - self.cfg.action_penalty_weight * action_penalty
                 - self.cfg.joint_velocity_penalty_weight * joint_velocity_penalty
@@ -380,8 +402,10 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             + self.cfg.region_entry_weight * self.in_target_region.float()
             + self.cfg.workspace_entry_weight * workspace_entry_reward
             + self.cfg.camera_alignment_weight * camera_alignment_reward
+            + self.cfg.gripper_camera_alignment_weight * gripper_camera_alignment_reward
             + self.cfg.inside_workspace_weight * self.inside_workspace.float()
             + self.cfg.stereo_visibility_weight * stereo_visible.float()
+            + self.cfg.gripper_camera_visibility_weight * self.target_gripper_camera_visible.float()
             + self.cfg.success_bonus_weight * success.float()
             - self.cfg.action_penalty_weight * action_penalty
             - self.cfg.joint_velocity_penalty_weight * joint_velocity_penalty
@@ -407,10 +431,14 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
             f"{prefix}_camera_region_match_rate": self.camera_region_matches.float().mean(),
             f"{prefix}_mean_workspace_entry_error": self.workspace_entry_error.mean(),
             f"{prefix}_mean_camera_alignment_error": self.camera_alignment_error.mean(),
+            f"{prefix}_mean_gripper_camera_target_error": self.gripper_camera_target_error.mean(),
+            f"{prefix}_mean_gripper_camera_target_depth": self.gripper_camera_target_depth.mean(),
             f"{prefix}_inside_workspace_rate": self.inside_workspace.float().mean(),
             f"{prefix}_target_left_visible_rate": self.target_left_visible.float().mean(),
             f"{prefix}_target_right_visible_rate": self.target_right_visible.float().mean(),
             f"{prefix}_target_stereo_visible_rate": self.target_stereo_visible.float().mean(),
+            f"{prefix}_target_gripper_camera_visible_rate": self.target_gripper_camera_visible.float().mean(),
+            f"{prefix}_target_three_camera_visible_rate": self.target_three_camera_visible.float().mean(),
             f"{prefix}_gripper_left_visible_rate": self.gripper_left_visible.float().mean(),
             f"{prefix}_gripper_right_visible_rate": self.gripper_right_visible.float().mean(),
             f"{prefix}_gripper_stereo_visible_rate": self.gripper_stereo_visible.float().mean(),
@@ -721,6 +749,18 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         rays = forward.unsqueeze(0) + (uv[:, 0:1] / focal) * right.unsqueeze(0) + (uv[:, 1:2] / focal) * up.unsqueeze(0)
         return rays / torch.clamp(torch.linalg.norm(rays, dim=-1, keepdim=True), min=1e-6)
 
+    def _dynamic_camera_basis(self, forward: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        forward = forward / torch.clamp(torch.linalg.norm(forward, dim=-1, keepdim=True), min=1e-6)
+        world_up = torch.tensor((0.0, 0.0, 1.0), device=self.device).repeat(self.num_envs, 1)
+        fallback_up = torch.tensor((0.0, 1.0, 0.0), device=self.device).repeat(self.num_envs, 1)
+        near_parallel = torch.abs(torch.sum(forward * world_up, dim=-1, keepdim=True)) > 0.95
+        up_ref = torch.where(near_parallel, fallback_up, world_up)
+        right = torch.cross(forward, up_ref, dim=-1)
+        right = right / torch.clamp(torch.linalg.norm(right, dim=-1, keepdim=True), min=1e-6)
+        up = torch.cross(right, forward, dim=-1)
+        up = up / torch.clamp(torch.linalg.norm(up, dim=-1, keepdim=True), min=1e-6)
+        return forward, right, up
+
     def _triangulate_stereo_points(self, stereo_features: torch.Tensor) -> torch.Tensor:
         left_pos = torch.tensor(self.cfg.left_camera_pos, device=self.device)
         right_pos = torch.tensor(self.cfg.right_camera_pos, device=self.device)
@@ -788,6 +828,7 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.inside_workspace = torch.all(inside_min & inside_max, dim=-1)
         self.target_camera_features = self._project_to_stereo(self.target_pos)
         self.gripper_camera_features = self._project_to_stereo(self.gripper_center_pos)
+        self.target_gripper_camera_features = self._project_to_gripper_camera(self.target_pos)
         (
             self.camera_estimated_target_pos,
             self.camera_estimated_face_ids,
@@ -800,11 +841,15 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         self.region_uv_error, self.in_target_region = self._compute_region_entry(self.gripper_center_pos)
         camera_delta = self.target_camera_features[:, [0, 1, 3, 4]] - self.gripper_camera_features[:, [0, 1, 3, 4]]
         self.camera_alignment_error = torch.linalg.norm(camera_delta, dim=-1)
+        self.gripper_camera_target_error = torch.linalg.norm(self.target_gripper_camera_features[:, 0:2], dim=-1)
+        self.gripper_camera_target_depth = self.target_gripper_camera_features[:, 3]
         self.target_left_visible = self.target_camera_features[:, 2] > 0.5
         self.target_right_visible = self.target_camera_features[:, 5] > 0.5
+        self.target_gripper_camera_visible = self.target_gripper_camera_features[:, 2] > 0.5
         self.gripper_left_visible = self.gripper_camera_features[:, 2] > 0.5
         self.gripper_right_visible = self.gripper_camera_features[:, 5] > 0.5
         self.target_stereo_visible = self.target_left_visible & self.target_right_visible
+        self.target_three_camera_visible = self.target_stereo_visible & self.target_gripper_camera_visible
         self.gripper_stereo_visible = self.gripper_left_visible & self.gripper_right_visible
 
     def _compute_plane_error(self, points: torch.Tensor) -> torch.Tensor:
@@ -874,6 +919,36 @@ class MT4CoordinateCurriculumEnv(DirectRLEnv):
         left = self._project_to_camera(points, torch.tensor(self.cfg.left_camera_pos, device=self.device))
         right = self._project_to_camera(points, torch.tensor(self.cfg.right_camera_pos, device=self.device))
         return torch.cat([left, right], dim=-1)
+
+    def _project_to_gripper_camera(self, points: torch.Tensor) -> torch.Tensor:
+        camera_offset_b = torch.tensor(self.cfg.gripper_camera_offset_b, device=self.device).repeat(self.num_envs, 1)
+        forward_axis_b = torch.tensor(self.cfg.gripper_forward_axis_b, device=self.device).repeat(self.num_envs, 1)
+        ee_quat_w = self.robot.data.body_quat_w[:, self.ee_body_id, :]
+        ee_pos_w = self.robot.data.body_pos_w[:, self.ee_body_id, :]
+        ee_pos = ee_pos_w - self.scene.env_origins
+        camera_pos = ee_pos + math_utils.quat_apply(ee_quat_w, camera_offset_b)
+        camera_forward = math_utils.quat_apply(ee_quat_w, forward_axis_b)
+        forward, right, up = self._dynamic_camera_basis(camera_forward)
+
+        rel = points - camera_pos
+        depth = torch.sum(rel * forward, dim=-1)
+        x = torch.sum(rel * right, dim=-1)
+        y = torch.sum(rel * up, dim=-1)
+        focal = 1.0 / torch.tan(torch.deg2rad(torch.tensor(self.cfg.gripper_camera_fov_deg * 0.5, device=self.device)))
+        u = focal * x / torch.clamp(depth, min=1e-4)
+        v = focal * y / torch.clamp(depth, min=1e-4)
+        visible = (
+            (depth > self.cfg.gripper_camera_min_depth)
+            & (depth < self.cfg.gripper_camera_max_depth)
+            & (torch.abs(u) <= 1.0)
+            & (torch.abs(v) <= 1.0)
+        )
+        depth_norm = (
+            (depth - self.cfg.gripper_camera_min_depth)
+            / max(self.cfg.gripper_camera_max_depth - self.cfg.gripper_camera_min_depth, 1.0e-6)
+        )
+        depth_feature = (depth_norm * 2.0 - 1.0).clamp(-2.0, 2.0)
+        return torch.stack([u.clamp(-2.0, 2.0), v.clamp(-2.0, 2.0), visible.float(), depth_feature], dim=-1)
 
     def _project_to_camera(self, points: torch.Tensor, camera_pos: torch.Tensor) -> torch.Tensor:
         forward, right, up = self._camera_basis(camera_pos)

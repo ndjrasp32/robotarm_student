@@ -27,7 +27,8 @@ Date: 2026-06-10 KST
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
 - student learning journal: `learning_journal/README.md`
-- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
+- active three-camera coordinate thread: `learning_journal/2026-06-10_three_camera_coordinate_baseline/README.md`
+- camera-only region archive: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery plan: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
@@ -44,11 +45,13 @@ Date: 2026-06-10 KST
 
 첫 실용 검증 대상은 `push` 또는 `pull`입니다. 두 미션은 완전한 grasp 모델에 의존하기 전에 동적 물체 접촉과 reset 동작을 먼저 증명할 수 있습니다.
 
-추가 curriculum은 로봇팔 전면 작업공간을 두 대의 고정 가상 카메라가 본 정규화 좌표로 학습합니다. 타겟 생성에는 로봇 기준 좌표를 쓰지만, 정책 관측과 시연 접근 선택에는 생성 좌표를 넣지 않고 카메라 기반 추정 영역만 사용합니다.
+추가 curriculum은 로봇팔 전면 작업공간을 몸체 좌/우 고정 가상 카메라와 그리퍼 장착 카메라 projection으로 학습합니다. 타겟 생성에는 로봇 기준 좌표를 쓰지만, 정책 관측과 시연 접근 선택에는 생성 좌표를 넣지 않고 카메라 기반 추정 영역과 그리퍼 카메라 target projection을 사용합니다.
 
 0. Stage 0: 홈 자세에서 카메라 가시 작업공간 안으로 진입하는 warm-up을 학습한다.
-1. Stage 1: 전면 카메라 평면을 3x3 영역으로 나눠 1-9번을 부여하고, 같은 카메라 영역에 들어가면서 영역 중심 3cm 이내로 접근하면 성공으로 본다. 한 영역이 strict success를 5회 달성하면 같은 policy로 다음 번호를 이어서 학습한다.
-2. Stage 2: 같은 stereo coordinate 관측으로 기존 target sphere reach를 학습한다.
+1. Stage 1: 전면 카메라 평면을 3x3 영역으로 나눠 1-9번을 부여하고, 같은 카메라 영역에 들어가면서 영역 중심 3cm 이내로 접근하면 성공으로 본다. 새 학습부터는 한 영역이 strict success를 10회 달성해야 같은 policy로 다음 번호를 이어서 학습한다.
+2. Stage 2: 같은 three-camera coordinate 관측으로 기존 target sphere reach를 학습한다.
+
+2026-06-10 새 기준선은 1500 iteration Stage 1 학습에서 9/9 영역을 모두 마스터했습니다. 마지막 배치 지표는 `target_three_camera_visible_rate=0.9014`, `camera_region_match_rate=1.0000`, `mean_distance=0.0545 m`, `strict_region_center_success_rate=0.0005`입니다. 이 결과는 기존 5회 성공 기준으로 만든 기준선입니다. 다음 학습부터는 영역별 10회 성공 기준을 사용해, 운 좋게 빨리 통과한 결과보다 더 안정적인 결과를 고릅니다.
 
 Stage 1 검증은 `scripts/view_coordinate_curriculum.sh --stage plane`로 먼저 수행합니다. marker와 콘솔 로그가 1번부터 9번까지 순차적으로 넘어가는지 확인하고, 학습 run에서는 `region_mastery.csv`와 region별 success count를 같이 확인합니다. 이 결과가 반복 가능해진 뒤에만 `robotarm_mt4` 실제 기기 이식 후보로 올립니다.
 
@@ -121,7 +124,8 @@ The active direction restarts from the Mars rover MT4 manipulation plan.
 - coordinate-plane curriculum viewer: `scripts/view_coordinate_curriculum.sh`
 - coordinate-plane stage 1: `Isaac-MT4-Coordinate-Plane-Direct-v0`
 - student learning journal: `learning_journal/README.md`
-- active camera-only region thread: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
+- active three-camera coordinate thread: `learning_journal/2026-06-10_three_camera_coordinate_baseline/README.md`
+- camera-only region archive: `learning_journal/2026-06-10_camera_only_region_matching/README.md`
 - coordinate region mastery plan: `notes/20260610_coordinate_region_mastery_plan.md`
 - camera-only region matching plan: `notes/20260610_camera_only_region_matching_plan.md`
 - coordinate-sphere stage 2: `Isaac-MT4-Coordinate-Sphere-Direct-v0`
@@ -138,11 +142,13 @@ The missions are split into:
 
 The first practical validation target should be `push` or `pull`, because those missions can prove dynamic-object contact and reset behavior before relying on a complete grasp model.
 
-The additional curriculum learns the front robot workspace through normalized observations from two fixed virtual cameras. Target generation may use robot-frame coordinates, but policy observations and demo approach selection must not receive those generation coordinates; they use only the camera-estimated region.
+The additional curriculum learns the front robot workspace through body left/right fixed virtual cameras plus a gripper-mounted camera projection. Target generation may use robot-frame coordinates, but policy observations and demo approach selection must not receive those generation coordinates; they use the camera-estimated region and gripper-camera target projection.
 
 0. Stage 0 learns home-to-camera-visible-workspace entry as a warm-up.
-1. Stage 1 splits the front camera plane into 3x3 regions, numbers them 1-9, and treats a region as successful only when the gripper is in the same camera region and within 3 cm of the region center. After 5 strict successes in one region, the same policy continues into the next number.
-2. Stage 2 reuses the same stereo coordinate observation for target-sphere reach.
+1. Stage 1 splits the front camera plane into 3x3 regions, numbers them 1-9, and treats a region as successful only when the gripper is in the same camera region and within 3 cm of the region center. New runs require 10 strict successes in one region before the same policy continues into the next number.
+2. Stage 2 reuses the same three-camera coordinate observation for target-sphere reach.
+
+The 2026-06-10 baseline mastered all 9 Stage 1 regions in a 1500-iteration run. Final-batch metrics were `target_three_camera_visible_rate=0.9014`, `camera_region_match_rate=1.0000`, `mean_distance=0.0545 m`, and `strict_region_center_success_rate=0.0005`. That baseline was produced with the previous 5-success mastery gate. New runs use a 10-success gate so region advancement prefers more repeatable behavior.
 
 Validate Stage 1 first with `scripts/view_coordinate_curriculum.sh --stage plane`; the marker and console log should advance from region 1 through 9 in order. During training, also inspect `region_mastery.csv` and the per-region success counts. Keep this validation in `robotarm_student` and consider `robotarm_mt4` transfer only after the student simulation result is repeatable.
 

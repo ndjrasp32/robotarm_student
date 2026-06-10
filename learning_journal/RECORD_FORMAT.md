@@ -17,6 +17,12 @@ Recommended `kind` values / 권장 `kind` 값:
 - `review`: interpretation, issue review, or lesson summary / 해석, 문제 검토, 수업 요약
 - `index`: mapping table or artifact index / 연결표 또는 산출물 인덱스
 
+## Video Rule / 영상 규칙
+
+- New training and demo videos should be about 1 minute long. / 새 학습 영상과 데모 영상은 약 1분 길이로 만듭니다.
+- In this coordinate task, 1 minute is `3600` simulation steps. / 이 좌표 태스크에서 1분은 simulation `3600` step입니다.
+- Keep the sequence CSV beside random demo videos so students can check whether the target really moved. / 랜덤 데모 영상 옆에는 순서 CSV를 같이 두어, 학생들이 목표가 실제로 바뀌었는지 확인할 수 있게 합니다.
+
 ## Document Template / 문서 템플릿
 
 ```markdown
@@ -64,6 +70,6 @@ Recommended `kind` values / 권장 `kind` 값:
 - Student-facing records are linked from `learning_journal/README.md`. / 학생용 기록은 `learning_journal/README.md`에서 연결됩니다.
 - Videos are stored under `learning_journal/videos/`. / 영상은 `learning_journal/videos/` 아래에 둡니다.
 - Video filenames follow `YYYYMMDD_HHMMSS_kind_topic_detail.ext`. / 영상 파일명은 `YYYYMMDD_HHMMSS_kind_topic_detail.ext`를 따릅니다.
+- New coordinate Stage 1 runs use 10 strict successes per region before moving to the next region. / 새 좌표 Stage 1 학습은 영역마다 엄격 성공 10회를 채운 뒤 다음 영역으로 넘어갑니다.
 - Korean and English appear together for plan/result summaries. / 계획과 결과 요약에는 한글과 영어를 병기합니다.
 - Source archive links still resolve. / 원자료 archive 링크가 깨지지 않습니다.
-

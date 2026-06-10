@@ -25,8 +25,8 @@ import cli_args  # isort: skip  # noqa: E402
 parser = argparse.ArgumentParser(description="Record a 9-region random target demo with a trained MT4 policy.")
 parser.add_argument("--task", default="Isaac-MT4-Coordinate-Plane-Direct-v0")
 parser.add_argument("--num_envs", type=int, default=1)
-parser.add_argument("--video_length", type=int, default=7200, help="Video length in simulation steps.")
-parser.add_argument("--target_interval_steps", type=int, default=360, help="Steps per displayed region target.")
+parser.add_argument("--video_length", type=int, default=3600, help="Video length in simulation steps. 3600 steps is about 60 seconds at 60 Hz.")
+parser.add_argument("--target_interval_steps", type=int, default=300, help="Steps per displayed region target. 300 steps is about 5 seconds at 60 Hz.")
 parser.add_argument("--sequence_seed", type=int, default=42)
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment.")
 parser.add_argument("--output_dir", type=Path, default=PROJECT_DIR / "learning_journal/videos")
@@ -75,24 +75,25 @@ def build_region_sequence(total_steps: int, interval_steps: int, seed: int) -> l
 
 
 def set_region_target(base_env, region_id: int) -> None:
-    env_ids = torch.arange(base_env.num_envs, device=base_env.device)
-    region_ids = torch.full((base_env.num_envs,), region_id, dtype=torch.long, device=base_env.device)
-    target = base_env._front_face_region_centers(region_ids)
-    face_ids = torch.zeros((base_env.num_envs,), dtype=torch.long, device=base_env.device)
+    with torch.inference_mode():
+        env_ids = torch.arange(base_env.num_envs, device=base_env.device)
+        region_ids = torch.full((base_env.num_envs,), region_id, dtype=torch.long, device=base_env.device)
+        target = base_env._front_face_region_centers(region_ids)
+        face_ids = torch.zeros((base_env.num_envs,), dtype=torch.long, device=base_env.device)
 
-    base_env.target_pos[env_ids] = target
-    base_env.face_ids[env_ids] = face_ids
-    base_env.region_ids[env_ids] = region_ids
-    base_env.face_one_hot[env_ids] = torch.nn.functional.one_hot(face_ids, num_classes=6).float()
-    base_env.region_features[env_ids] = base_env._region_features(region_ids)
-    base_env._compute_intermediate_values()
-    base_env._update_markers()
+        base_env.target_pos[env_ids] = target
+        base_env.face_ids[env_ids] = face_ids
+        base_env.region_ids[env_ids] = region_ids
+        base_env.face_one_hot[env_ids] = torch.nn.functional.one_hot(face_ids, num_classes=6).float()
+        base_env.region_features[env_ids] = base_env._region_features(region_ids)
+        base_env._compute_intermediate_values()
+        base_env._update_markers()
 
 
 def write_sequence_csv(path: Path, sequence: list[int], interval_steps: int, step_dt: float) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["segment", "start_s", "end_s", "region_number"])
         for i, region_id in enumerate(sequence):
             start_s = i * interval_steps * step_dt
@@ -183,15 +184,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg, agent_cfg: RslRlBaseRun
         with torch.inference_mode():
             actions = policy(obs)
             obs, _, dones, _ = env.step(actions)
-            set_region_target(base_env, sequence[current_segment])
             if hasattr(policy, "reset"):
                 policy.reset(dones)
             elif hasattr(runner.alg, "policy") and hasattr(runner.alg.policy, "reset"):
                 runner.alg.policy.reset(dones)
             elif hasattr(runner.alg, "actor_critic") and hasattr(runner.alg.actor_critic, "reset"):
                 runner.alg.actor_critic.reset(dones)
-            if torch.any(dones):
-                obs = env.get_observations()
+        set_region_target(base_env, sequence[current_segment])
+        if torch.any(dones):
+            obs = env.get_observations()
 
     env.close()
     copied = copy_recorded_video(raw_video_dir, output_video)

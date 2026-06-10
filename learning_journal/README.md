@@ -10,7 +10,7 @@
 
 Current active thread / 현재 활성 흐름:
 
-- [2026-06-10 Camera-Only Region Matching](2026-06-10_camera_only_region_matching/README.md)
+- [2026-06-10 Three-Camera Coordinate Baseline](2026-06-10_three_camera_coordinate_baseline/README.md)
 
 ## Folder Rule / 폴더 규칙
 
@@ -31,12 +31,15 @@ YYYYMMDD_HHMMSS_kind_topic_detail.ext
 Examples / 예시:
 
 - `20260610_095546_run_camera_only_region_matching_1500iter.md`
-- `20260610_074525_demo_9region_random_policy_2min_labeled.mp4`
-- `20260610_073944_demo_9region_random_policy_2min_sequence.csv`
+- `20260610_114129_plan_success10_video1min_demo_check.md`
+- `20260610_120000_demo_three_camera_random_regions_1min.mp4`
+- `20260610_120000_demo_three_camera_random_regions_1min_sequence.csv`
 
 `kind` should be one of `plan`, `run`, `demo`, `train`, `review`, or `index`. / `kind`는 `plan`, `run`, `demo`, `train`, `review`, `index` 중 하나를 기본으로 사용합니다.
 
 ## Video Index / 영상 인덱스
+
+New videos should be about 1 minute. Older `2min` videos stay here only as archive evidence. / 새 영상은 약 1분으로 만듭니다. 예전 `2min` 영상은 근거 archive로만 유지합니다.
 
 | file | purpose / 목적 | related record / 연결 기록 |
 | --- | --- | --- |
@@ -49,6 +52,9 @@ Examples / 예시:
 | [20260610_074432_train_coordinate_progress_2min.mp4](videos/20260610_074432_train_coordinate_progress_2min.mp4) | short coordinate training progress clip / 좌표 학습 진행 2분 클립 | [2026-06-10 thread](2026-06-10_camera_only_region_matching/README.md) |
 | [20260610_074525_demo_9region_random_policy_2min_labeled.mp4](videos/20260610_074525_demo_9region_random_policy_2min_labeled.mp4) | labeled 9-region random policy demo / 라벨 포함 9영역 랜덤 정책 시연 | [2026-06-10 thread](2026-06-10_camera_only_region_matching/README.md) |
 | [20260610_073944_demo_9region_random_policy_2min_sequence.csv](videos/20260610_073944_demo_9region_random_policy_2min_sequence.csv) | region order used in the random demo / 랜덤 시연의 영역 순서 | [2026-06-10 thread](2026-06-10_camera_only_region_matching/README.md) |
+| [20260610_113358_train_three_camera_coordinate_baseline_stage1_1500iter_step36000.mp4](videos/20260610_113358_train_three_camera_coordinate_baseline_stage1_1500iter_step36000.mp4) | three-camera Stage 1 baseline training clip / 3카메라 Stage 1 기준선 학습 클립 | [2026-06-10 three-camera thread](2026-06-10_three_camera_coordinate_baseline/README.md) |
+| [20260610_114650_demo_three_camera_random_regions_1min.mp4](videos/20260610_114650_demo_three_camera_random_regions_1min.mp4) | 1-minute random-region demo / 1분 랜덤 영역 데모 | [success10/video1min plan](2026-06-10_three_camera_coordinate_baseline/20260610_114129_plan_success10_video1min_demo_check.md) |
+| [20260610_114650_demo_three_camera_random_regions_1min_sequence.csv](videos/20260610_114650_demo_three_camera_random_regions_1min_sequence.csv) | region order for the 1-minute demo / 1분 데모 영역 순서 | [success10/video1min plan](2026-06-10_three_camera_coordinate_baseline/20260610_114129_plan_success10_video1min_demo_check.md) |
 
 ## What Students Should Check / 학생 확인 포인트
 
@@ -56,3 +62,5 @@ Examples / 예시:
 - Does the run record show the command, checkpoint, metrics, and interpretation? / 실행 기록에 명령, 체크포인트, 지표, 해석이 있는가?
 - Does the video demonstrate the same behavior that the record claims? / 영상이 기록에서 말한 행동을 실제로 보여주는가?
 - Are perception errors and control errors separated? / 인식 오차와 제어 오차가 분리되어 있는가?
+- For new coordinate runs, did each region pass 10 strict successes? / 새 좌표 학습에서 각 영역이 엄격 성공 10회를 채웠는가?
+- For random demos, does the `_sequence.csv` show changing region numbers? / 랜덤 데모에서 `_sequence.csv`의 영역 번호가 바뀌는가?
